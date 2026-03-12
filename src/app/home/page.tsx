@@ -1,4 +1,4 @@
-// src/app/home/page.tsx
+// // src/app/home/page.tsx
 
 "use client";
 
@@ -9,6 +9,7 @@ import Image from "next/image";
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:3001";
 
 const prefixOptions = ["MR.", "MS.", "MRS."];
+const suffixOptions = ["JR.", "SR.", "II", "III", "IV", "V"];
 const sexOptions = ["MALE", "FEMALE"];
 const statusOptions = [
   "ACTIVE",
@@ -26,10 +27,11 @@ const categoryOptions = [
   "COPYRIGHT OWNER",
   "NON-MEMBER",
 ];
+const ynOptions = ["Y", "N"];
 
 interface Member {
   Member_No: string;
-  Old_Member_No?: string | null; // Added
+  Old_Member_No?: string | null;
   Membership_ID: string;
   Member_Status?: string | null;
   Member_Category?: string | null;
@@ -48,7 +50,7 @@ interface Member {
   Band_Name?: string | null;
   Pseudonym?: string | null;
   Address?: string | null;
-  CITY?: string | null; // Added
+  CITY?: string | null;
   Email_Address?: string | null;
   Contact_Number?: string | null;
   Primary_Contact_Number?: string | null;
@@ -104,6 +106,26 @@ export default function HomePage() {
   const [logsLoading, setLogsLoading] = useState(false);
 
   const [saving, setSaving] = useState(false);
+
+  // Sync Full Name automatically
+  useEffect(() => {
+    if (isModalOpen) {
+      const full =
+        `${formData.First_Name || ""} ${formData.Middle_Name || ""} ${formData.Last_Name || ""}${formData.Suffix ? ` ${formData.Suffix}` : ""}`
+          .trim()
+          .replace(/\s+/g, " ");
+
+      if (formData.Name !== full) {
+        setFormData((prev) => ({ ...prev, Name: full }));
+      }
+    }
+  }, [
+    formData.First_Name,
+    formData.Middle_Name,
+    formData.Last_Name,
+    formData.Suffix,
+    isModalOpen,
+  ]);
 
   const fetchMembers = async () => {
     try {
@@ -205,10 +227,48 @@ export default function HomePage() {
     if (!dateString) return "N/A";
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return "Invalid Date";
-
-    // Returns only YYYY-MM-DD
     return date.toISOString().split("T")[0];
   }
+
+  // UPDATED: Now accounts for Date of Death
+  function calculateAge(
+    dob: string | undefined | null,
+    dod?: string | null,
+  ): string {
+    if (!dob) return "0";
+    const birthDate = new Date(dob);
+    if (isNaN(birthDate.getTime())) return "0";
+
+    const endDate = dod ? new Date(dod) : new Date();
+    if (isNaN(endDate.getTime())) return "0";
+
+    let age = endDate.getFullYear() - birthDate.getFullYear();
+    const m = endDate.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && endDate.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age >= 0 ? String(age) : "0";
+  }
+
+  function calculateYearsOfMembership(
+    joinDate: string | undefined | null,
+    termDate?: string | null,
+  ): string {
+    if (!joinDate) return "0";
+    const membershipDate = new Date(joinDate);
+    if (isNaN(membershipDate.getTime())) return "0";
+
+    const endDate = termDate ? new Date(termDate) : new Date();
+    if (isNaN(endDate.getTime())) return "0";
+
+    let years = endDate.getFullYear() - membershipDate.getFullYear();
+    const m = endDate.getMonth() - membershipDate.getMonth();
+    if (m < 0 || (m === 0 && endDate.getDate() < membershipDate.getDate())) {
+      years--;
+    }
+    return years >= 0 ? String(years) : "0";
+  }
+
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
@@ -218,9 +278,7 @@ export default function HomePage() {
 
   const handleSubmit = async () => {
     if (saving) return;
-
     setSaving(true);
-
     const currentUser = localStorage.getItem("username");
 
     try {
@@ -244,7 +302,7 @@ export default function HomePage() {
     } catch (err) {
       console.error(err);
     } finally {
-      setSaving(false); // UNLOCK
+      setSaving(false);
     }
   };
 
@@ -255,7 +313,7 @@ export default function HomePage() {
   );
 
   return (
-    <main className="min-h-screen w-full bg-[url('/BG.png')] lg:bg-[url('/BG.png')] bg-fixed bg-no-repeat bg-[length:100%_100%] bg-center flex flex-col font-sans">
+    <main className="min-h-screen w-full bg-[url('/BG.png')] lg:bg-[url('/BG.png')] bg-fixed bg-no-repeat bg-[length:100%_100%] bg-center flex flex-col font-sans text-black">
       <div className="relative w-full bg-[#b7df69] p-3 sticky top-0 z-50 shadow-lg">
         <div className="w-full px-1 relative z-10 flex justify-between items-center mx-auto">
           <div className="flex items-center gap-4 flex-1">
@@ -404,6 +462,38 @@ export default function HomePage() {
                       ? val.substring(0, 10)
                       : String(val || "N/A")}
                   </p>
+                  {key === "Date_of_Birth" && (
+                    <div className="mt-1 p-1  rounded">
+                      <p className="text-[9px] uppercase font-bold tracking-tighter">
+                        {selectedMember.Date_of_Death
+                          ? "Age at Death"
+                          : "Current Age"}
+                      </p>
+                      <p className="text-blue-700 font-bold text-sm">
+                        {calculateAge(
+                          selectedMember.Date_of_Birth,
+                          selectedMember.Date_of_Death,
+                        )}{" "}
+                        years old
+                      </p>
+                    </div>
+                  )}
+                  {key === "Date_of_Membership" && (
+                    <div className="mt-1 p-1  rounded">
+                      <p className="text-[9px] uppercase font-bold tracking-tighter">
+                        {selectedMember.Date_of_Membership_Termination_Resignation
+                          ? "Length of Membership"
+                          : "Years of Membership"}
+                      </p>
+                      <p className="text-green-700 font-bold text-sm">
+                        {calculateYearsOfMembership(
+                          selectedMember.Date_of_Membership,
+                          selectedMember.Date_of_Membership_Termination_Resignation,
+                        )}
+                        years
+                      </p>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -530,7 +620,7 @@ export default function HomePage() {
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/80 p-4">
           <div className="bg-white rounded-xl w-full max-w-6xl max-h-[95vh] overflow-hidden flex flex-col">
             <div className="p-6 border-b bg-[#b7df69] flex justify-between items-center">
-              <h2 className="text-2xl font-black">
+              <h2 className="text-2xl font-black uppercase text-gray-800">
                 {isEditMode ? "EDIT MEMBER" : "ADD NEW MEMBER"}
               </h2>
               <button
@@ -546,7 +636,7 @@ export default function HomePage() {
                 name="Old_Member_No"
                 value={formData.Old_Member_No}
                 onChange={handleInputChange}
-                disabled
+                disabled={isEditMode}
               />
               <Input
                 label="Membership ID"
@@ -555,7 +645,6 @@ export default function HomePage() {
                 onChange={handleInputChange}
                 disabled
               />
-              {/* PERSONAL INFORMATION */}
               <Select
                 label="Prefix"
                 name="Prefix"
@@ -581,16 +670,18 @@ export default function HomePage() {
                 value={formData.Last_Name}
                 onChange={handleInputChange}
               />
-              <Input
-                label="Suffix"
+              <DatalistInput
+                label="Suffix "
                 name="Suffix"
                 value={formData.Suffix}
+                options={suffixOptions}
                 onChange={handleInputChange}
+                listId="suffix-list"
               />
               <Input
                 label="Full Name"
                 name="Name"
-                value={`${formData.First_Name || ""} ${formData.Middle_Name || ""} ${formData.Last_Name || ""}${formData.Suffix ? ` ${formData.Suffix}` : ""}`.trim()}
+                value={formData.Name}
                 onChange={handleInputChange}
                 disabled
               />
@@ -601,19 +692,32 @@ export default function HomePage() {
                 options={sexOptions}
                 onChange={handleInputChange}
               />
-              <DateInput
-                label="Date of Birth"
-                name="Date_of_Birth"
-                value={formData.Date_of_Birth}
-                onChange={handleInputChange}
-              />
+              <div className="flex flex-col gap-1">
+                <DateInput
+                  label="Date of Birth"
+                  name="Date_of_Birth"
+                  value={formData.Date_of_Birth}
+                  onChange={handleInputChange}
+                />
+                <div className="px-2 py-1 rounded border border-blue-200">
+                  <span className="text-[10px] font-bold  uppercase">
+                    {formData.Date_of_Death ? "Age at Death: " : "Age:"}
+                  </span>
+                  <span className="text-xs font-black text-blue-800">
+                    {calculateAge(
+                      formData.Date_of_Birth,
+                      formData.Date_of_Death,
+                    )}{" "}
+                    yrs
+                  </span>
+                </div>
+              </div>
               <DateInput
                 label="Date of Death"
                 name="Date_of_Death"
                 value={formData.Date_of_Death}
                 onChange={handleInputChange}
               />
-              {/* STATUS & CATEGORY */}
               <Select
                 label="Status"
                 name="Member_Status"
@@ -628,7 +732,6 @@ export default function HomePage() {
                 options={categoryOptions}
                 onChange={handleInputChange}
               />
-              {/* INDUSTRY IDENTIFIERS */}
               <Input
                 label="CAE No"
                 name="CAE_No"
@@ -661,7 +764,6 @@ export default function HomePage() {
                 value={formData.Pseudonym}
                 onChange={handleInputChange}
               />
-              {/* CONTACT & LOCATION */}
               <Input
                 label="Email Address"
                 name="Email_Address"
@@ -704,7 +806,6 @@ export default function HomePage() {
                 value={formData.Landline}
                 onChange={handleInputChange}
               />
-              {/* OFFICE & BUSINESS ENTITY */}
               <Input
                 label="Business Entity"
                 name="Type_of_Business_Entity"
@@ -741,7 +842,6 @@ export default function HomePage() {
                 value={formData.Contact_Person}
                 onChange={handleInputChange}
               />
-              {/* FINANCIAL INFO */}
               <Input
                 label="TIN"
                 name="Tin_Number"
@@ -760,13 +860,28 @@ export default function HomePage() {
                 value={formData.Bank_Account_Info}
                 onChange={handleInputChange}
               />
-              {/* MEMBERSHIP DATES & LEGAL RECORDS */}
-              <DateInput
-                label="Date of Membership"
-                name="Date_of_Membership"
-                value={formData.Date_of_Membership}
-                onChange={handleInputChange}
-              />
+              <div className="flex flex-col gap-1">
+                <DateInput
+                  label="Date of Membership"
+                  name="Date_of_Membership"
+                  value={formData.Date_of_Membership}
+                  onChange={handleInputChange}
+                />
+                <div className="px-2 py-1  rounded border border-green-200">
+                  <span className="text-[10px] font-bold text-black uppercase">
+                    {formData.Date_of_Membership_Termination_Resignation
+                      ? "Length of Membership: "
+                      : "Computed Tenure: "}
+                  </span>
+                  <span className="text-xs font-black text-green-800">
+                    {calculateYearsOfMembership(
+                      formData.Date_of_Membership,
+                      formData.Date_of_Membership_Termination_Resignation,
+                    )}{" "}
+                    years
+                  </span>
+                </div>
+              </div>
               <DateInput
                 label="Termination Date"
                 name="Date_of_Membership_Termination_Resignation"
@@ -779,32 +894,34 @@ export default function HomePage() {
                 value={formData.Date_Registred_National_Library}
                 onChange={handleInputChange}
               />
-              {/* DOCUMENTATION STATUS */}
-              <Input
+              <Select
                 label="Deed of Assignment"
                 name="Deed_Of_Assignment"
                 value={formData.Deed_Of_Assignment}
+                options={ynOptions}
                 onChange={handleInputChange}
               />
-              <Input
+              <Select
                 label="Certification"
                 name="Certification"
                 value={formData.Certification}
+                options={ynOptions}
                 onChange={handleInputChange}
               />
-              <Input
+              <Select
                 label="Membership Application"
                 name="Membership_Application"
                 value={formData.Membership_Application}
+                options={ynOptions}
                 onChange={handleInputChange}
               />
-              <Input
+              <Select
                 label="Declaration of Works"
                 name="Declaration_Of_Works"
                 value={formData.Declaration_Of_Works}
+                options={ynOptions}
                 onChange={handleInputChange}
               />
-              {/* REMARKS & FILES */}
               <Input
                 label="Remarks"
                 name="Remarks"
@@ -828,11 +945,11 @@ export default function HomePage() {
               <button
                 onClick={handleSubmit}
                 className={`flex-1 py-3 rounded-lg font-bold uppercase
-    ${
-      saving
-        ? "bg-gray-400 cursor-not-allowed"
-        : "bg-green-600 hover:bg-green-700 text-white"
-    }`}
+                ${
+                  saving
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-green-600 hover:bg-green-700 text-white"
+                }`}
               >
                 {saving ? "Saving..." : "Save Changes"}
               </button>
@@ -850,6 +967,7 @@ export default function HomePage() {
   );
 }
 
+// Sub-components
 function Input({ label, name, value, onChange, disabled = false }: any) {
   return (
     <div className="flex flex-col">
@@ -862,8 +980,30 @@ function Input({ label, name, value, onChange, disabled = false }: any) {
         value={value || ""}
         onChange={onChange}
         disabled={disabled}
-        className="p-2 border rounded text-xs bg-white disabled:bg-gray-100"
+        className="p-2 border rounded text-xs bg-white disabled:bg-gray-100 uppercase"
       />
+    </div>
+  );
+}
+
+function DatalistInput({ label, name, value, options, onChange, listId }: any) {
+  return (
+    <div className="flex flex-col">
+      <label className="text-[10px] font-bold uppercase text-gray-500">
+        {label}
+      </label>
+      <input
+        list={listId}
+        name={name}
+        value={value || ""}
+        onChange={onChange}
+        className="p-2 border rounded text-xs bg-white uppercase"
+      />
+      <datalist id={listId}>
+        {options.map((o: string) => (
+          <option key={o} value={o} />
+        ))}
+      </datalist>
     </div>
   );
 }
@@ -878,7 +1018,7 @@ function Select({ label, name, value, options, onChange }: any) {
         name={name}
         value={value || ""}
         onChange={onChange}
-        className="p-2 border rounded text-xs bg-white"
+        className="p-2 border rounded text-xs bg-white uppercase"
       >
         <option value="">-- SELECT --</option>
         {options.map((o: string) => (
@@ -893,7 +1033,7 @@ function Select({ label, name, value, options, onChange }: any) {
 
 function DateInput({ label, name, value, onChange }: any) {
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col w-full">
       <label className="text-[10px] font-bold uppercase text-gray-500">
         {label}
       </label>

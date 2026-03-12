@@ -9,6 +9,7 @@ import Image from "next/image";
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:3001";
 
 const prefixOptions = ["MR.", "MS.", "MRS."];
+const suffixOptions = ["JR.", "SR.", "II", "III", "IV", "V"];
 const sexOptions = ["MALE", "FEMALE"];
 const statusOptions = [
   "ACTIVE",
@@ -32,7 +33,7 @@ interface successorData {
   Member_Category: string;
   Member_Status?: string | null;
   Remarks: string;
-  "Predecessor : (Membership ID)": string;
+  Predecessor_Membership_ID: string;
   Successor_Surname: string | null;
   Successor_First_Name: string | null;
   Successor_Middle_Name?: string | null;
@@ -59,7 +60,7 @@ interface successorData {
   Successor_Date_of_Membership?: string | null;
   Successor_Date_of_Birth?: string | null;
   Successor_Date_of_Death?: string | null;
-  "Successor_Date of Membership Termination/Resignation"?: string | null;
+  Successor_Date_of_Termination?: string | null;
   Successor_Related_Files?: string | null;
   Successor_Date_Registred_National_Library?: string | null;
 }
@@ -91,7 +92,6 @@ export default function SuccessorListPage() {
   const [formData, setFormData] = useState<Partial<successorData>>({});
   const [saving, setSaving] = useState(false);
 
-  // Logs States
   const [isLogsModalOpen, setIsLogsModalOpen] = useState(false);
   const [allLogs, setAllLogs] = useState<Log[]>([]);
   const [logs, setLogs] = useState<Log[]>([]);
@@ -128,7 +128,6 @@ export default function SuccessorListPage() {
       const res = await fetch(`${API_BASE}/logs`);
       const data: Log[] = await res.json();
       setAllLogs(data);
-
       const today = new Date().toISOString().split("T")[0];
       const filtered = data.filter(
         (log) => log.Changed_At && log.Changed_At.split("T")[0] === today,
@@ -140,6 +139,59 @@ export default function SuccessorListPage() {
       setLogsLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (isModalOpen) {
+      const full =
+        `${formData.Successor_First_Name || ""} ${formData.Successor_Middle_Name || ""} ${formData.Successor_Surname || ""}${formData.Successor_Suffix ? ` ${formData.Successor_Suffix}` : ""}`
+          .trim()
+          .replace(/\s+/g, " ");
+
+      if (formData.Successor_Full_Name !== full) {
+        setFormData((prev) => ({ ...prev, Successor_Full_Name: full }));
+      }
+    }
+  }, [
+    formData.Successor_First_Name,
+    formData.Successor_Middle_Name,
+    formData.Successor_Surname,
+    formData.Successor_Suffix,
+    isModalOpen,
+  ]);
+
+  function calculateAge(
+    dob: string | undefined | null,
+    dod?: string | null,
+  ): string {
+    if (!dob) return "0";
+    const birthDate = new Date(dob);
+    if (isNaN(birthDate.getTime())) return "0";
+    const endDate = dod ? new Date(dod) : new Date();
+    if (isNaN(endDate.getTime())) return "0";
+    let age = endDate.getFullYear() - birthDate.getFullYear();
+    const m = endDate.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && endDate.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age >= 0 ? String(age) : "0";
+  }
+
+  function calculateYearsOfMembership(
+    joinDate: string | undefined | null,
+    termDate?: string | null,
+  ): string {
+    if (!joinDate) return "0";
+    const membershipDate = new Date(joinDate);
+    if (isNaN(membershipDate.getTime())) return "0";
+    const endDate = termDate ? new Date(termDate) : new Date();
+    if (isNaN(endDate.getTime())) return "0";
+    let years = endDate.getFullYear() - membershipDate.getFullYear();
+    const m = endDate.getMonth() - membershipDate.getMonth();
+    if (m < 0 || (m === 0 && endDate.getDate() < membershipDate.getDate())) {
+      years--;
+    }
+    return years >= 0 ? String(years) : "0";
+  }
 
   const clearLogsDisplay = () => setLogs([]);
   const showAllLogs = () => setLogs(allLogs);
@@ -184,10 +236,8 @@ export default function SuccessorListPage() {
   };
 
   const handleSubmit = async () => {
-    if (saving) return; // BLOCK double submit
-
+    if (saving) return;
     setSaving(true);
-
     const currentUser = localStorage.getItem("username");
 
     try {
@@ -202,10 +252,7 @@ export default function SuccessorListPage() {
       });
 
       const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to save");
-      }
+      if (!res.ok) throw new Error(data.error || "Failed to save");
 
       setIsModalOpen(false);
       await fetchSuccessors();
@@ -216,7 +263,7 @@ export default function SuccessorListPage() {
       console.error("Save Error:", errorMessage);
       alert(errorMessage);
     } finally {
-      setSaving(false); // UNLOCK
+      setSaving(false);
     }
   };
 
@@ -243,9 +290,9 @@ export default function SuccessorListPage() {
     currentPage * itemsPerPage,
   );
   const formatDateOnly = (dateString: string) => {
-  if (!dateString) return "-";
-  return String(dateString).split("T")[0];
-};
+    if (!dateString) return "-";
+    return String(dateString).split("T")[0];
+  };
 
   return (
     <main className="min-h-screen w-full bg-[url('/BG.png')] bg-fixed bg-no-repeat bg-[length:100%_100%] bg-center flex flex-col font-sans">
@@ -305,7 +352,6 @@ export default function SuccessorListPage() {
 
       {/* TABLE */}
       <div className="flex-grow p-6 relative z-10">
-        {/* <div className="flex-grow p-6 relative z-10 w-full lg:w-[80%] mx-auto"> */}
         <div className="text-black text-4xl font-bold mb-2">Successors</div>
         <div className="bg-transparent rounded-xl shadow-2xl overflow-hidden border border-gray-200">
           <table className="w-full text-left border-collapse">
@@ -345,7 +391,6 @@ export default function SuccessorListPage() {
               ))}
             </tbody>
           </table>
-          {/* PAGINATION */}
           <div className="p-2 bg-white/60 flex justify-between items-center border-t">
             <span className="text-sm text-gray-600 font-medium">
               Page {currentPage} of {totalPages}
@@ -370,7 +415,6 @@ export default function SuccessorListPage() {
         </div>
       </div>
 
-      {/* SUCCESSOR DETAILS MODAL */}
       {selectedSuccessor && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
@@ -385,17 +429,50 @@ export default function SuccessorListPage() {
                 &times;
               </button>
             </div>
-            <div className="p-6 overflow-y-auto grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="p-6 overflow-y-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {Object.entries(selectedSuccessor).map(([key, val]) => (
                 <div key={key} className="border-b border-gray-100 pb-2">
                   <p className="text-[10px] uppercase text-gray-400 font-bold">
                     {key.replace(/_/g, " ")}
                   </p>
                   <p className="text-gray-800 font-medium">
-                    {key.toLowerCase().includes("date") && val
-                      ? String(val).split("T")[0]
+                    {key.toLowerCase().includes("date") &&
+                    typeof val === "string"
+                      ? val.substring(0, 10)
                       : String(val || "N/A")}
                   </p>
+                  {key === "Successor_Date_of_Birth" && (
+                    <div className="mt-1 p-1  rounded">
+                      <p className="text-[9px] uppercase font-bold tracking-tighter">
+                        {selectedSuccessor.Successor_Date_of_Death
+                          ? "Age at Death"
+                          : "Current Age"}
+                      </p>
+                      <p className="text-blue-700 font-bold text-sm">
+                        {calculateAge(
+                          selectedSuccessor.Successor_Date_of_Birth,
+                          selectedSuccessor.Successor_Date_of_Death,
+                        )}{" "}
+                        years old
+                      </p>
+                    </div>
+                  )}
+                  {key === "Successor_Date_of_Membership" && (
+                    <div className="mt-1 p-1  rounded">
+                      <p className="text-[9px] uppercase font-bold tracking-tighter">
+                        {selectedSuccessor.Successor_Date_of_Termination
+                          ? "Length of Membership"
+                          : "Years of Membership"}
+                      </p>
+                      <p className="text-green-700 font-bold text-sm">
+                        {calculateYearsOfMembership(
+                          selectedSuccessor.Successor_Date_of_Membership,
+                          selectedSuccessor.Successor_Date_of_Termination,
+                        )}
+                        years
+                      </p>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -540,14 +617,13 @@ export default function SuccessorListPage() {
                 &times;
               </button>
             </div>
-            <div className="p-6 overflow-y-auto grid grid-cols-1 md:grid-cols-4 gap-4"> 
-
-              {/* PREDECESSOR & SYSTEM INFO */}
+            <div className="p-6 overflow-y-auto grid grid-cols-1 md:grid-cols-4 gap-4">
               <Input
-                label="Predecessor (Membership ID)"
-                name="Predecessor : (Membership ID)"
-                value={formData["Predecessor : (Membership ID)"]}
+                label="Predecessor ID"
+                name="Predecessor_Membership_ID"
+                value={formData.Predecessor_Membership_ID}
                 onChange={handleInputChange}
+                disabled={isEditMode}
               />
 
               <Select
@@ -565,7 +641,6 @@ export default function SuccessorListPage() {
                 onChange={handleInputChange}
               />
 
-              {/* SUCCESSOR NAMES */}
               <Select
                 label="Prefix"
                 name="Successor_Prefix"
@@ -591,11 +666,13 @@ export default function SuccessorListPage() {
                 value={formData.Successor_Surname}
                 onChange={handleInputChange}
               />
-              <Input
-                label="Suffix"
+              <DatalistInput
+                label="Suffix "
                 name="Successor_Suffix"
                 value={formData.Successor_Suffix}
+                options={suffixOptions}
                 onChange={handleInputChange}
+                listId="suffix-list"
               />
               <Input
                 label="Full Name"
@@ -604,7 +681,6 @@ export default function SuccessorListPage() {
                 disabled
               />
 
-              {/* PERSONAL DETAILS */}
               <Select
                 label="Sex"
                 name="Successor_Sex"
@@ -612,12 +688,28 @@ export default function SuccessorListPage() {
                 options={sexOptions}
                 onChange={handleInputChange}
               />
-              <DateInput
-                label="Date of Birth"
-                name="Successor_Date_of_Birth"
-                value={formData.Successor_Date_of_Birth}
-                onChange={handleDateChange}
-              />
+              <div className="flex flex-col gap-1">
+                <DateInput
+                  label={`Date of Birth`}
+                  name="Successor_Date_of_Birth"
+                  value={formData.Successor_Date_of_Birth}
+                  onChange={handleDateChange}
+                />
+                <div className="px-2 py-1 rounded border border-blue-200">
+                  <span className="text-[10px] font-bold  uppercase">
+                    {formData.Successor_Date_of_Death
+                      ? "Age at Death: "
+                      : "Age:"}
+                  </span>
+                  <span className="text-xs font-black text-blue-800">
+                    {calculateAge(
+                      formData.Successor_Date_of_Birth,
+                      formData.Successor_Date_of_Death,
+                    )}{" "}
+                    yrs
+                  </span>
+                </div>
+              </div>
               <DateInput
                 label="Date of Death"
                 name="Successor_Date_of_Death"
@@ -656,7 +748,6 @@ export default function SuccessorListPage() {
                 onChange={handleInputChange}
               />
 
-              {/* CONTACT INFO */}
               <Input
                 label="Address"
                 name="Successor_Address"
@@ -719,22 +810,32 @@ export default function SuccessorListPage() {
                 value={formData.Successor_Bank_Account_Info}
                 onChange={handleInputChange}
               />
-
-              {/* MEMBERSHIP DATES */}
-              <DateInput
-                label="Date of Membership"
-                name="Successor_Date_of_Membership"
-                value={formData.Successor_Date_of_Membership}
-                onChange={handleDateChange}
-              />
+              <div className="flex flex-col gap-1">
+                <DateInput
+                  label="Date of Membership"
+                  name="Successor_Date_of_Membership"
+                  value={formData.Successor_Date_of_Membership}
+                  onChange={handleDateChange}
+                />
+                <div className="px-2 py-1  rounded border border-green-200">
+                  <span className="text-[10px] font-bold text-black uppercase">
+                    {formData.Successor_Date_of_Termination
+                      ? "Length of Membership: "
+                      : "Computed Tenure: "}
+                  </span>
+                  <span className="text-xs font-black text-green-800">
+                    {calculateYearsOfMembership(
+                      formData.Successor_Date_of_Membership,
+                      formData.Successor_Date_of_Termination,
+                    )}{" "}
+                    years
+                  </span>
+                </div>
+              </div>
               <DateInput
                 label="Membership Termination"
-                name="Successor_Date of Membership Termination/Resignation"
-                value={
-                  formData[
-                    "Successor_Date of Membership Termination/Resignation"
-                  ]
-                }
+                name="Successor_Date_of_Termination"
+                value={formData.Successor_Date_of_Termination}
                 onChange={handleDateChange}
               />
               <DateInput
@@ -744,7 +845,6 @@ export default function SuccessorListPage() {
                 onChange={handleDateChange}
               />
 
-              {/* REMARKS & FILES */}
               <Input
                 label="Remarks"
                 name="Remarks"
@@ -793,6 +893,28 @@ function Input({ label, name, value, onChange, disabled = false }: any) {
         disabled={disabled}
         className="p-2 border rounded text-xs bg-white disabled:bg-gray-100"
       />
+    </div>
+  );
+}
+
+function DatalistInput({ label, name, value, options, onChange, listId }: any) {
+  return (
+    <div className="flex flex-col">
+      <label className="text-[10px] font-bold uppercase text-gray-500">
+        {label}
+      </label>
+      <input
+        list={listId}
+        name={name}
+        value={value || ""}
+        onChange={onChange}
+        className="p-2 border rounded text-xs bg-white uppercase"
+      />
+      <datalist id={listId}>
+        {options.map((o: string) => (
+          <option key={o} value={o} />
+        ))}
+      </datalist>
     </div>
   );
 }
