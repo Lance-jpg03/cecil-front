@@ -298,8 +298,9 @@ export default function SuccessorListPage() {
     <main className="min-h-screen w-full bg-[url('/BG.png')] bg-fixed bg-no-repeat bg-[length:100%_100%] bg-center flex flex-col font-sans">
       {/* HEADER */}
       <div className="relative w-full bg-[#b7df69] p-3 sticky top-0 z-50 shadow-lg">
-        <div className="w-full px-1 flex justify-between items-center mx-auto">
-          <div className="flex items-center gap-4 flex-1">
+        <div className="w-full px-1 flex justify-between items-center mx-auto gap-8">
+          {/* 1. Left Section: Logo and One-liner Title */}
+          <div className="flex items-center gap-4 flex-initial shrink-0">
             <button
               onClick={openLogsModal}
               className="hover:opacity-80 cursor-pointer"
@@ -312,18 +313,20 @@ export default function SuccessorListPage() {
                 priority
               />
             </button>
-            <div className="text-white text-xl hidden lg:block font-bold">
-              Successor Masterlist
+            {/* whitespace-nowrap ensures it stays on one line */}
+            <div className="text-white text-xl hidden lg:block font-bold whitespace-nowrap">
+              PROJECT CECIL: MEMBERS INFORMATION MASTERLIST
             </div>
           </div>
 
-          <div className="flex-1 flex justify-center">
+          {/* 2. Middle Section: Search bar moved closer to the left */}
+          <div className="flex-1 flex justify-start">
             <input
               type="text"
               placeholder="Search Successors..."
               value={searchQuery}
               onChange={(e) => handleSearch(e.target.value)}
-              className="p-2 border rounded w-full md:w-3/4 bg-white/90 outline-none focus:ring-2 focus:ring-orange-500"
+              className="p-2 border rounded w-full max-w-md bg-white/90 outline-none focus:ring-2 focus:ring-orange-500"
             />
           </div>
 
@@ -747,7 +750,6 @@ export default function SuccessorListPage() {
                 value={formData.Successor_Pseudonym}
                 onChange={handleInputChange}
               />
-
               <Input
                 label="Address"
                 name="Successor_Address"
@@ -844,7 +846,6 @@ export default function SuccessorListPage() {
                 value={formData.Successor_Date_Registred_National_Library}
                 onChange={handleDateChange}
               />
-
               <Input
                 label="Remarks"
                 name="Remarks"
@@ -896,7 +897,6 @@ function Input({ label, name, value, onChange, disabled = false }: any) {
     </div>
   );
 }
-
 function DatalistInput({ label, name, value, options, onChange, listId }: any) {
   return (
     <div className="flex flex-col">
@@ -918,7 +918,6 @@ function DatalistInput({ label, name, value, options, onChange, listId }: any) {
     </div>
   );
 }
-
 function Select({ label, name, value, options, onChange }: any) {
   return (
     <div className="flex flex-col">
@@ -941,7 +940,6 @@ function Select({ label, name, value, options, onChange }: any) {
     </div>
   );
 }
-
 function DateInput({ label, name, value, onChange }: any) {
   return (
     <div className="flex flex-col">

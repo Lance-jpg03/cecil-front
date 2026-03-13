@@ -31,7 +31,6 @@ const ynOptions = ["Y", "N"];
 
 interface Member {
   Member_No: string;
-  Old_Member_No?: string | null;
   Membership_ID: string;
   Member_Status?: string | null;
   Member_Category?: string | null;
@@ -73,7 +72,6 @@ interface Member {
   Membership_Application?: string | null;
   Declaration_Of_Works?: string | null;
   Remarks?: string | null;
-  Remarks2?: string | null;
   Related_files?: string | null;
 }
 
@@ -315,11 +313,12 @@ export default function HomePage() {
   return (
     <main className="min-h-screen w-full bg-[url('/BG.png')] lg:bg-[url('/BG.png')] bg-fixed bg-no-repeat bg-[length:100%_100%] bg-center flex flex-col font-sans text-black">
       <div className="relative w-full bg-[#b7df69] p-3 sticky top-0 z-50 shadow-lg">
-        <div className="w-full px-1 relative z-10 flex justify-between items-center mx-auto">
-          <div className="flex items-center gap-4 flex-1">
+        <div className="w-full px-1 flex justify-between items-center mx-auto gap-8">
+          {/* 1. Left Section: Logo and One-liner Title */}
+          <div className="flex items-center gap-4 flex-initial shrink-0">
             <button
               onClick={openLogsModal}
-              className="hover:opacity-80 transition-opacity cursor-pointer"
+              className="hover:opacity-80 cursor-pointer"
             >
               <Image
                 src="/lego.png"
@@ -329,18 +328,20 @@ export default function HomePage() {
                 priority
               />
             </button>
-            <div className="text-white text-xl hidden lg:block font-bold">
-              Project Cecil Masterlist
+            {/* whitespace-nowrap ensures it stays on one line */}
+            <div className="text-white text-xl hidden lg:block font-bold whitespace-nowrap">
+              PROJECT CECIL: MEMBERS INFORMATION MASTERLIST
             </div>
           </div>
 
-          <div className="flex-1 flex justify-center">
+          {/* 2. Middle Section: Search bar moved closer to the left */}
+          <div className="flex-1 flex justify-start">
             <input
               type="text"
-              placeholder="Search by name or ID..."
+              placeholder="Search Successors..."
               value={searchQuery}
               onChange={(e) => handleSearch(e.target.value)}
-              className="p-2 border rounded w-full md:w-3/4 bg-white/90 outline-none focus:ring-2 focus:ring-orange-500"
+              className="p-2 border rounded w-full max-w-md bg-white/90 outline-none focus:ring-2 focus:ring-orange-500"
             />
           </div>
 
@@ -375,14 +376,13 @@ export default function HomePage() {
           <table className="w-full text-left border-collapse">
             <thead className="bg-[#b7df69] text-white uppercase text-xs">
               <tr>
-                <th className="p-4">Prefix</th>
-                <th className="p-4">First Name</th>
-                <th className="p-4">Middle Name</th>
-                <th className="p-4">Last Name</th>
-                <th className="p-4">Suffix</th>
-                <th className="p-4">Sex</th>
-                <th className="p-4">Date Of Birth</th>
-                <th className="p-4">Full Name </th>
+                <th className="p-4"> MEMBERSHIP ID </th>
+                <th className="p-4">DATE OF MEMBERSHIP</th>
+                <th className="p-4">DATE OF BIRTH</th>
+                <th className="p-4"> IPI NAME NUMBER </th>
+                <th className="p-4"> IPI BASE NUMBER</th>
+                <th className="p-4">MEMBERSHIP TYPE</th>
+                <th className="p-4">FULL NAME </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
@@ -391,12 +391,12 @@ export default function HomePage() {
                   key={m.Member_No}
                   className="hover:bg-green-50 transition-colors"
                 >
-                  <td className="p-4 text-xs">{m.Prefix}</td>
-                  <td className="p-4 text-xs">{m.First_Name}</td>
-                  <td className="p-4 text-xs">{m.Middle_Name}</td>
-                  <td className="p-4 text-xs">{m.Last_Name}</td>
-                  <td className="p-4 text-xs">{m.Suffix || "-"}</td>
-                  <td className="p-4 text-xs">{m.Sex}</td>
+                  <td className="p-4 text-xs">{m.Membership_ID}</td>
+                  <td className="p-4 text-xs">{m.Date_of_Membership}</td>
+                  <td className="p-4 text-xs">{m.Date_of_Birth}</td>
+                  <td className="p-4 text-xs">{m.IPI_Name_Number}</td>
+                  <td className="p-4 text-xs">{m.IPI_Base_Number}</td>
+                  <td className="p-4 text-xs">{m.Member_Category}</td>
                   <td className="p-4 text-xs">
                     {m.Date_of_Birth?.substring(0, 10)}
                   </td>
@@ -631,13 +631,7 @@ export default function HomePage() {
               </button>
             </div>
             <div className="p-6 overflow-y-auto grid grid-cols-1 md:grid-cols-4 gap-4">
-              <Input
-                label="Old Member No"
-                name="Old_Member_No"
-                value={formData.Old_Member_No}
-                onChange={handleInputChange}
-                disabled={isEditMode}
-              />
+
               <Input
                 label="Membership ID"
                 name="Membership_ID"
@@ -928,12 +922,7 @@ export default function HomePage() {
                 value={formData.Remarks}
                 onChange={handleInputChange}
               />
-              <Input
-                label="Remarks 2"
-                name="Remarks2"
-                value={formData.Remarks2}
-                onChange={handleInputChange}
-              />
+
               <Input
                 label="Related Files"
                 name="Related_files"
