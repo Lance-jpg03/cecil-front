@@ -39,7 +39,7 @@ interface Member {
   Middle_Name?: string | null;
   Last_Name?: string | null;
   Suffix?: string | null;
-  Name?: string | null; // Full Name
+  Name?: string | null;
   Sex?: string | null;
   Date_of_Birth?: string | null;
   Date_of_Death?: string | null;
@@ -65,6 +65,7 @@ interface Member {
   Bank_Name?: string | null;
   Bank_Account_Info?: string | null;
   Date_of_Membership?: string | null;
+  // Updated to match standardized DB column name
   Date_of_Membership_Termination_Resignation?: string | null;
   Date_Registred_National_Library?: string | null;
   Deed_Of_Assignment?: string | null;
@@ -73,6 +74,7 @@ interface Member {
   Declaration_Of_Works?: string | null;
   Remarks?: string | null;
   Related_files?: string | null;
+  Successor_Full_Name?: string | null;
 }
 
 interface Log {
@@ -86,26 +88,23 @@ interface Log {
 
 export default function HomePage() {
   const router = useRouter();
-
   const [members, setMembers] = useState<Member[]>([]);
   const [filteredMembers, setFilteredMembers] = useState<Member[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("ALL");
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 11;
-
+  const itemsPerPage = 20;
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [formData, setFormData] = useState<Partial<Member>>({});
-
   const [isLogsModalOpen, setIsLogsModalOpen] = useState(false);
   const [allLogs, setAllLogs] = useState<Log[]>([]);
   const [logs, setLogs] = useState<Log[]>([]);
   const [logsLoading, setLogsLoading] = useState(false);
-
   const [saving, setSaving] = useState(false);
 
+  // Auto-generate Full Name
   useEffect(() => {
     if (isModalOpen) {
       const full =
@@ -144,7 +143,6 @@ export default function HomePage() {
       if (!res.ok) throw new Error("Failed to fetch logs");
       const data: Log[] = await res.json();
       setAllLogs(data);
-
       const today = new Date().toISOString().split("T")[0];
       const todaysLogs = data.filter(
         (log) => log.Changed_At.split("T")[0] === today,
@@ -194,11 +192,13 @@ export default function HomePage() {
             .includes(lowerQuery) ||
           String(m.Member_No || "")
             .toLowerCase()
+            .includes(lowerQuery) ||
+          String(m.Membership_ID || "")
+            .toLowerCase()
             .includes(lowerQuery)
         );
       });
     }
-
     setFilteredMembers(filtered);
   };
 
@@ -207,26 +207,18 @@ export default function HomePage() {
       alert("No data available to export.");
       return;
     }
-
-    // Get all possible keys from all objects in the array to ensure no column is missed
     const allKeys = Array.from(
       new Set(data.flatMap((obj) => Object.keys(obj))),
     );
-
     const headers = allKeys.join(",");
     const rows = data.map((obj) =>
       allKeys
-        .map((key) => {
-          const val = obj[key];
-          return `"${String(val || "").replace(/"/g, '""')}"`;
-        })
+        .map((key) => `"${String(obj[key] || "").replace(/"/g, '""')}"`)
         .join(","),
     );
-
-    const csvContent = "\uFEFF" + headers + "\n" + rows.join("\n"); // Added BOM for Excel UTF-8 support
+    const csvContent = "\uFEFF" + headers + "\n" + rows.join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
-
     const link = document.createElement("a");
     link.setAttribute("href", url);
     link.setAttribute("download", `${filename}.csv`);
@@ -269,7 +261,6 @@ export default function HomePage() {
   const clearLogsDisplay = () => setLogs([]);
   const showAllLogs = () => setLogs(allLogs);
 
-  // Updated function signature to accept null/undefined
   function formatDatePH(dateString: string | null | undefined): string {
     if (!dateString) return "N/A";
     const date = new Date(dateString);
@@ -285,12 +276,9 @@ export default function HomePage() {
     const birthDate = new Date(dob);
     if (isNaN(birthDate.getTime())) return "0";
     const endDate = dod ? new Date(dod) : new Date();
-    if (isNaN(endDate.getTime())) return "0";
     let age = endDate.getFullYear() - birthDate.getFullYear();
     const m = endDate.getMonth() - birthDate.getMonth();
-    if (m < 0 || (m === 0 && endDate.getDate() < birthDate.getDate())) {
-      age--;
-    }
+    if (m < 0 || (m === 0 && endDate.getDate() < birthDate.getDate())) age--;
     return age >= 0 ? String(age) : "0";
   }
 
@@ -302,12 +290,10 @@ export default function HomePage() {
     const membershipDate = new Date(joinDate);
     if (isNaN(membershipDate.getTime())) return "0";
     const endDate = termDate ? new Date(termDate) : new Date();
-    if (isNaN(endDate.getTime())) return "0";
     let years = endDate.getFullYear() - membershipDate.getFullYear();
     const m = endDate.getMonth() - membershipDate.getMonth();
-    if (m < 0 || (m === 0 && endDate.getDate() < membershipDate.getDate())) {
+    if (m < 0 || (m === 0 && endDate.getDate() < membershipDate.getDate()))
       years--;
-    }
     return years >= 0 ? String(years) : "0";
   }
 
@@ -322,7 +308,6 @@ export default function HomePage() {
     if (saving) return;
     setSaving(true);
     const currentUser = localStorage.getItem("username");
-
     try {
       const res = await fetch(`${API_BASE}/membership/save`, {
         method: "POST",
@@ -333,7 +318,6 @@ export default function HomePage() {
           Changed_By: currentUser,
         }),
       });
-
       if (res.ok) {
         setIsModalOpen(false);
         await fetchMembers();
@@ -429,21 +413,21 @@ export default function HomePage() {
         </div>
       </div>
 
-      <div className="flex-grow p-6 relative z-10">
-        <div className="text-black text-4xl hidden lg:block font-bold mb-2">
+      <div className="flex-grow p-4 relative z-10">
+        <div className="text-black text-3xl hidden lg:block font-bold mb-2">
           Members
         </div>
         <div className="bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-200">
           <table className="w-full text-left border-collapse">
-            <thead className="bg-[#b7df69] text-white uppercase text-xs">
+            <thead className="bg-[#b7df69] text-white uppercase text-[10px]">
               <tr>
-                <th className="p-4"> MEMBERSHIP ID </th>
-                <th className="p-4">DATE OF MEMBERSHIP</th>
-                <th className="p-4">DATE OF BIRTH</th>
-                <th className="p-4"> IPI NAME NUMBER </th>
-                <th className="p-4"> IPI BASE NUMBER</th>
-                <th className="p-4">MEMBERSHIP TYPE</th>
-                <th className="p-4">FULL NAME </th>
+                <th className="px-4 py-2"> MEMBERSHIP ID </th>
+                <th className="px-4 py-2">DATE OF MEMBERSHIP</th>
+                <th className="px-4 py-2">DATE OF BIRTH</th>
+                <th className="px-4 py-2"> IPI NAME NUMBER </th>
+                <th className="px-4 py-2"> IPI BASE NUMBER</th>
+                <th className="px-4 py-2">MEMBERSHIP TYPE</th>
+                <th className="px-4 py-2">FULL NAME </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
@@ -452,20 +436,26 @@ export default function HomePage() {
                   key={m.Member_No}
                   className="hover:bg-green-50 transition-colors"
                 >
-                  <td className="p-4 text-xs">{m.Membership_ID}</td>
-                  <td className="p-4 text-xs">
+                  <td className="px-4 py-1.5 text-[10px]">{m.Membership_ID}</td>
+                  <td className="px-4 py-1.5 text-[10px]">
                     {formatDatePH(m.Date_of_Membership)}
                   </td>
-                  <td className="p-4 text-xs">
+                  <td className="px-4 py-1.5 text-[10px]">
                     {formatDatePH(m.Date_of_Birth)}
                   </td>
-                  <td className="p-4 text-xs">{m.IPI_Name_Number}</td>
-                  <td className="p-4 text-xs">{m.IPI_Base_Number}</td>
-                  <td className="p-4 text-xs">{m.Member_Category}</td>
-                  <td className="p-4">
+                  <td className="px-4 py-1.5 text-[10px]">
+                    {m.IPI_Name_Number}
+                  </td>
+                  <td className="px-4 py-1.5 text-[10px]">
+                    {m.IPI_Base_Number}
+                  </td>
+                  <td className="px-4 py-1.5 text-[10px]">
+                    {m.Member_Category}
+                  </td>
+                  <td className="px-4 py-1.5">
                     <button
                       onClick={() => setSelectedMember(m)}
-                      className="text-blue-600 font-bold hover:underline text-left text-xs"
+                      className="text-blue-600 font-bold hover:underline text-left text-[10px]"
                     >
                       {m.Name}
                     </button>
@@ -475,21 +465,22 @@ export default function HomePage() {
             </tbody>
           </table>
           <div className="p-2 bg-white flex justify-between items-center border-t">
-            <span className="text-sm text-gray-600">
-              Page {currentPage} of {totalPages}
+            <span className="text-xs text-gray-600">
+              Page {currentPage} of {totalPages} ({filteredMembers.length} total
+              items)
             </span>
             <div className="flex gap-2">
               <button
                 disabled={currentPage === 1}
                 onClick={() => setCurrentPage((p) => p - 1)}
-                className="px-4 py-1 bg-white border rounded disabled:opacity-50 text-xs font-bold"
+                className="px-3 py-1 bg-white border rounded disabled:opacity-50 text-[10px] font-bold"
               >
                 Prev
               </button>
               <button
                 disabled={currentPage === totalPages}
                 onClick={() => setCurrentPage((p) => p + 1)}
-                className="px-4 py-1 bg-white border rounded disabled:opacity-50 text-xs font-bold"
+                className="px-3 py-1 bg-white border rounded disabled:opacity-50 text-[10px] font-bold"
               >
                 Next
               </button>
@@ -501,79 +492,66 @@ export default function HomePage() {
       {selectedMember && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
-            <div className="p-6 border-b flex justify-between items-center rounded-t-xl bg-[#b7df69]">
-              <h2 className="text-2xl font-black text-gray-800 uppercase">
-                Member Details
-              </h2>
+            <div className="p-6 border-b flex justify-between items-center bg-[#b7df69]">
+              <h2 className="text-xl font-black uppercase">Member Details</h2>
               <button
                 onClick={() => setSelectedMember(null)}
-                className="text-gray-500 hover:text-black text-2xl"
+                className="text-2xl"
               >
                 &times;
               </button>
             </div>
-            <div className="p-6 overflow-y-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="p-6 overflow-y-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div className="border-b pb-2">
+                <p className="text-[9px] uppercase text-gray-400 font-bold">
+                  Successor Name
+                </p>
+                {selectedMember.Successor_Full_Name ? (
+                  <button
+                    onClick={() =>
+                      router.push(
+                        `/successorList?search=${selectedMember.Membership_ID}`,
+                      )
+                    }
+                    className="text-blue-600 font-bold hover:underline text-sm uppercase"
+                  >
+                    {selectedMember.Successor_Full_Name}
+                  </button>
+                ) : (
+                  <p className="text-gray-400 text-sm italic">None</p>
+                )}
+              </div>
               {Object.entries(selectedMember)
-                .filter(([key]) => key !== "CAE_No")
+                .filter(
+                  ([key]) =>
+                    !["CAE_No", "Successor_Full_Name", "Name"].includes(key),
+                )
                 .map(([key, val]) => (
-                  <div key={key} className="border-b border-gray-100 pb-2">
-                    <p className="text-[10px] uppercase text-gray-400 font-bold">
+                  <div key={key} className="border-b pb-2">
+                    <p className="text-[9px] uppercase text-gray-400 font-bold">
                       {key.replace(/_/g, " ")}
                     </p>
-                    <p className="text-gray-800 font-medium">
-                      {key.toLowerCase().includes("date") &&
-                      typeof val === "string"
-                        ? val.substring(0, 10)
+                    <p className="text-gray-800 font-medium text-sm">
+                      {key.toLowerCase().includes("date")
+                        ? formatDatePH(String(val))
                         : String(val || "N/A")}
                     </p>
-                    {key === "Date_of_Birth" && (
-                      <div className="mt-1 p-1 rounded">
-                        <p className="text-[9px] uppercase font-bold tracking-tighter">
-                          {selectedMember.Date_of_Death
-                            ? "Age at Death"
-                            : "Current Age"}
-                        </p>
-                        <p className="text-blue-700 font-bold text-sm">
-                          {calculateAge(
-                            selectedMember.Date_of_Birth,
-                            selectedMember.Date_of_Death,
-                          )}{" "}
-                          years old
-                        </p>
-                      </div>
-                    )}
-                    {key === "Date_of_Membership" && (
-                      <div className="mt-1 p-1 rounded">
-                        <p className="text-[9px] uppercase font-bold tracking-tighter">
-                          {selectedMember.Date_of_Membership_Termination_Resignation
-                            ? "Length of Membership"
-                            : "Years of Membership"}
-                        </p>
-                        <p className="text-green-700 font-bold text-sm">
-                          {calculateYearsOfMembership(
-                            selectedMember.Date_of_Membership,
-                            selectedMember.Date_of_Membership_Termination_Resignation,
-                          )}{" "}
-                          years
-                        </p>
-                      </div>
-                    )}
                   </div>
                 ))}
             </div>
-            <div className="p-6 border-t bg-gray-50 flex gap-3">
+            <div className="p-4 border-t bg-gray-50 flex gap-3">
               <button
                 onClick={() => {
                   openEditModal(selectedMember);
                   setSelectedMember(null);
                 }}
-                className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700 transition-all"
+                className="flex-1 bg-blue-600 text-white py-2 rounded-lg font-bold text-xs uppercase"
               >
                 Edit Information
               </button>
               <button
                 onClick={() => setSelectedMember(null)}
-                className="flex-1 bg-gray-200 text-gray-800 py-3 rounded-lg font-bold hover:bg-gray-300 transition-all"
+                className="flex-1 bg-gray-200 py-2 rounded-lg font-bold text-xs uppercase"
               >
                 Close
               </button>
@@ -585,8 +563,8 @@ export default function HomePage() {
       {isLogsModalOpen && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/70 backdrop-blur-md p-4">
           <div className="bg-white rounded-xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
-            <div className="p-6 border-b bg-[#b7df69] text-white flex justify-between items-center">
-              <h2 className="text-2xl font-black uppercase">
+            <div className="p-4 border-b bg-[#b7df69] text-white flex justify-between items-center">
+              <h2 className="text-xl font-black uppercase">
                 System Activity Logs
               </h2>
               <button
@@ -596,41 +574,41 @@ export default function HomePage() {
                 &times;
               </button>
             </div>
-            <div className="p-4 bg-gray-100 flex gap-4 border-b">
+            <div className="p-3 bg-gray-100 flex gap-4 border-b">
               <button
                 onClick={clearLogsDisplay}
-                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded font-bold text-xs uppercase transition-all"
+                className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded font-bold text-[10px] uppercase"
               >
                 Clear Today's Logs
               </button>
               <button
                 onClick={showAllLogs}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded font-bold text-xs uppercase transition-all"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded font-bold text-[10px] uppercase"
               >
                 Show All Logs
               </button>
               <button
                 onClick={() => exportToCSV(logs, "System_Logs_Export")}
-                className="bg-green-700 hover:bg-green-800 text-white px-4 py-2 rounded font-bold text-xs uppercase ml-auto"
+                className="bg-green-700 hover:bg-green-800 text-white px-3 py-1 rounded font-bold text-[10px] uppercase ml-auto"
               >
                 Export Logs
               </button>
             </div>
-            <div className="flex-grow overflow-auto p-6">
+            <div className="flex-grow overflow-auto p-4">
               {logsLoading ? (
                 <p className="text-center py-10 font-bold animate-pulse text-gray-500">
                   Retrieving system logs...
                 </p>
               ) : (
-                <table className="w-full text-left text-sm">
-                  <thead className="top-0 bg-gray-200 uppercase text-[10px] font-bold">
+                <table className="w-full text-left text-xs">
+                  <thead className="top-0 bg-gray-200 uppercase text-[9px] font-bold">
                     <tr>
-                      <th className="p-3 border">Log ID</th>
-                      <th className="p-3 border">Membership ID</th>
-                      <th className="p-3 border">Action</th>
-                      <th className="p-3 border">Updated By</th>
-                      <th className="p-3 border">Updated At</th>
-                      <th className="p-3 border">Details</th>
+                      <th className="p-2 border">Log ID</th>
+                      <th className="p-2 border">Membership ID</th>
+                      <th className="p-2 border">Action</th>
+                      <th className="p-2 border">Updated By</th>
+                      <th className="p-2 border">Updated At</th>
+                      <th className="p-2 border">Details</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -640,22 +618,22 @@ export default function HomePage() {
                           key={log.Log_ID}
                           className="hover:bg-gray-50 border-b"
                         >
-                          <td className="p-3 border">{log.Log_ID}</td>
-                          <td className="p-3 border font-mono">
+                          <td className="p-2 border">{log.Log_ID}</td>
+                          <td className="p-2 border font-mono">
                             {log.Membership_ID}
                           </td>
-                          <td className="p-3 border">
-                            <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-[10px] font-bold">
+                          <td className="p-2 border">
+                            <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-[9px] font-bold">
                               {log.Action}
                             </span>
                           </td>
-                          <td className="p-3 border font-bold">
+                          <td className="p-2 border font-bold">
                             {log.Changed_By}
                           </td>
-                          <td className="p-3 border whitespace-nowrap">
+                          <td className="p-2 border whitespace-nowrap">
                             {formatDatePH(log.Changed_At)}
                           </td>
-                          <td className="p-3 border italic text-gray-500">
+                          <td className="p-2 border italic text-gray-500">
                             {log.Details || "-"}
                           </td>
                         </tr>
@@ -674,10 +652,10 @@ export default function HomePage() {
                 </table>
               )}
             </div>
-            <div className="p-4 border-t bg-gray-50 flex justify-end">
+            <div className="p-3 border-t bg-gray-50 flex justify-end">
               <button
                 onClick={() => setIsLogsModalOpen(false)}
-                className="bg-gray-800 text-white px-8 py-2 rounded font-bold uppercase hover:bg-black transition-all"
+                className="bg-gray-800 text-white px-6 py-2 rounded font-bold uppercase hover:bg-black text-[10px]"
               >
                 Close Logs
               </button>
@@ -689,8 +667,8 @@ export default function HomePage() {
       {isModalOpen && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/80 p-4">
           <div className="bg-white rounded-xl w-full max-w-6xl max-h-[95vh] overflow-hidden flex flex-col">
-            <div className="p-6 border-b bg-[#b7df69] flex justify-between items-center">
-              <h2 className="text-2xl font-black uppercase text-gray-800">
+            <div className="p-4 border-b bg-[#b7df69] flex justify-between items-center">
+              <h2 className="text-xl font-black uppercase text-gray-800">
                 {isEditMode ? "EDIT MEMBER" : "ADD NEW MEMBER"}
               </h2>
               <button
@@ -700,7 +678,7 @@ export default function HomePage() {
                 &times;
               </button>
             </div>
-            <div className="p-6 overflow-y-auto grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="p-4 overflow-y-auto grid grid-cols-1 md:grid-cols-4 gap-3">
               <Input
                 label="Membership ID"
                 name="Membership_ID"
@@ -762,11 +740,11 @@ export default function HomePage() {
                   value={formData.Date_of_Birth}
                   onChange={handleInputChange}
                 />
-                <div className="px-2 py-1 rounded border border-blue-200">
-                  <span className="text-[10px] font-bold uppercase">
+                <div className="px-2 py-0.5 rounded border border-blue-200">
+                  <span className="text-[9px] font-bold uppercase">
                     {formData.Date_of_Death ? "Age at Death: " : "Age:"}
                   </span>
-                  <span className="text-xs font-black text-blue-800">
+                  <span className="text-[10px] font-black text-blue-800">
                     {calculateAge(
                       formData.Date_of_Birth,
                       formData.Date_of_Death,
@@ -930,13 +908,13 @@ export default function HomePage() {
                   value={formData.Date_of_Membership}
                   onChange={handleInputChange}
                 />
-                <div className="px-2 py-1 rounded border border-green-200">
-                  <span className="text-[10px] font-bold text-black uppercase">
+                <div className="px-2 py-0.5 rounded border border-green-200">
+                  <span className="text-[9px] font-bold text-black uppercase">
                     {formData.Date_of_Membership_Termination_Resignation
                       ? "Length of Membership: "
                       : "Computed Tenure: "}
                   </span>
-                  <span className="text-xs font-black text-green-800">
+                  <span className="text-[10px] font-black text-green-800">
                     {calculateYearsOfMembership(
                       formData.Date_of_Membership,
                       formData.Date_of_Membership_Termination_Resignation,
@@ -998,16 +976,16 @@ export default function HomePage() {
                 onChange={handleInputChange}
               />
             </div>
-            <div className="p-6 border-t bg-gray-50 flex gap-4">
+            <div className="p-4 border-t bg-gray-50 flex gap-4">
               <button
                 onClick={handleSubmit}
-                className={`flex-1 py-3 rounded-lg font-bold uppercase ${saving ? "bg-gray-400 cursor-not-allowed" : "bg-green-600 hover:bg-green-700 text-white"}`}
+                className={`flex-1 py-3 rounded-lg font-bold uppercase text-xs ${saving ? "bg-gray-400 cursor-not-allowed" : "bg-green-600 hover:bg-green-700 text-white"}`}
               >
                 {saving ? "Saving..." : "Save Changes"}
               </button>
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="flex-1 bg-gray-500 text-white py-3 rounded-lg font-bold uppercase hover:bg-gray-600"
+                className="flex-1 bg-gray-500 text-white py-3 rounded-lg font-bold uppercase hover:bg-gray-600 text-xs"
               >
                 Cancel
               </button>
@@ -1023,7 +1001,7 @@ export default function HomePage() {
 function Input({ label, name, value, onChange, disabled = false }: any) {
   return (
     <div className="flex flex-col">
-      <label className="text-[10px] font-bold uppercase text-gray-500">
+      <label className="text-[9px] font-bold uppercase text-gray-500">
         {label}
       </label>
       <input
@@ -1032,7 +1010,7 @@ function Input({ label, name, value, onChange, disabled = false }: any) {
         value={value || ""}
         onChange={onChange}
         disabled={disabled}
-        className="p-2 border rounded text-xs bg-white disabled:bg-gray-100 uppercase"
+        className="p-1.5 border rounded text-[10px] bg-white disabled:bg-gray-100 uppercase"
       />
     </div>
   );
@@ -1041,7 +1019,7 @@ function Input({ label, name, value, onChange, disabled = false }: any) {
 function DatalistInput({ label, name, value, options, onChange, listId }: any) {
   return (
     <div className="flex flex-col">
-      <label className="text-[10px] font-bold uppercase text-gray-500">
+      <label className="text-[9px] font-bold uppercase text-gray-500">
         {label}
       </label>
       <input
@@ -1049,7 +1027,7 @@ function DatalistInput({ label, name, value, options, onChange, listId }: any) {
         name={name}
         value={value || ""}
         onChange={onChange}
-        className="p-2 border rounded text-xs bg-white uppercase"
+        className="p-1.5 border rounded text-[10px] bg-white uppercase"
       />
       <datalist id={listId}>
         {options.map((o: string) => (
@@ -1063,14 +1041,14 @@ function DatalistInput({ label, name, value, options, onChange, listId }: any) {
 function Select({ label, name, value, options, onChange }: any) {
   return (
     <div className="flex flex-col">
-      <label className="text-[10px] font-bold uppercase text-gray-500">
+      <label className="text-[9px] font-bold uppercase text-gray-500">
         {label}
       </label>
       <select
         name={name}
         value={value || ""}
         onChange={onChange}
-        className="p-2 border rounded text-xs bg-white uppercase"
+        className="p-1.5 border rounded text-[10px] bg-white uppercase"
       >
         <option value="">-- SELECT --</option>
         {options.map((o: string) => (
@@ -1086,7 +1064,7 @@ function Select({ label, name, value, options, onChange }: any) {
 function DateInput({ label, name, value, onChange }: any) {
   return (
     <div className="flex flex-col w-full">
-      <label className="text-[10px] font-bold uppercase text-gray-500">
+      <label className="text-[9px] font-bold uppercase text-gray-500">
         {label}
       </label>
       <input
@@ -1094,7 +1072,7 @@ function DateInput({ label, name, value, onChange }: any) {
         name={name}
         value={value?.substring(0, 10) || ""}
         onChange={onChange}
-        className="p-2 border rounded text-xs bg-white"
+        className="p-1.5 border rounded text-[10px] bg-white"
       />
     </div>
   );
