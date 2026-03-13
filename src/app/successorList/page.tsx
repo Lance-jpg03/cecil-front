@@ -83,7 +83,7 @@ export default function SuccessorListPage() {
   );
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 11;
+  const itemsPerPage = 20;
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -273,6 +273,32 @@ export default function SuccessorListPage() {
     setIsModalOpen(true);
   };
 
+  const exportToCSV = (data: any[], filename: string) => {
+    if (!data || data.length === 0) {
+      alert("No data available to export.");
+      return;
+    }
+    const allKeys = Array.from(
+      new Set(data.flatMap((obj) => Object.keys(obj))),
+    );
+    const headers = allKeys.join(",");
+    const rows = data.map((obj) =>
+      allKeys
+        .map((key) => `"${String(obj[key] || "").replace(/"/g, '""')}"`)
+        .join(","),
+    );
+    const csvContent = "\uFEFF" + headers + "\n" + rows.join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `${filename}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const openAddModal = () => {
     setFormData({});
     setIsEditMode(false);
@@ -295,12 +321,10 @@ export default function SuccessorListPage() {
   };
 
   return (
-    <main className="min-h-screen w-full bg-[url('/BG.png')] bg-fixed bg-no-repeat bg-[length:100%_100%] bg-center flex flex-col font-sans">
-      {/* HEADER */}
+    <main className="min-h-screen w-full bg-[url('/BG.png')] bg-fixed bg-no-repeat bg-[length:100%_100%] bg-center flex flex-col font-sans text-black">
       <div className="relative w-full bg-[#b7df69] p-3 sticky top-0 z-50 shadow-lg">
         <div className="w-full px-1 flex justify-between items-center mx-auto gap-8">
-          {/* 1. Left Section: Logo and One-liner Title */}
-          <div className="flex items-center gap-4 flex-initial shrink-0">
+          <div className="flex items-center gap-4 shrink-0">
             <button
               onClick={openLogsModal}
               className="hover:opacity-80 cursor-pointer"
@@ -313,79 +337,88 @@ export default function SuccessorListPage() {
                 priority
               />
             </button>
-            {/* whitespace-nowrap ensures it stays on one line */}
             <div className="text-white text-xl hidden lg:block font-bold whitespace-nowrap">
-              PROJECT CECIL: MEMBERS INFORMATION MASTERLIST
+              PROJECT CECIL: SUCCESSOR MASTERLIST
             </div>
           </div>
 
-          {/* 2. Middle Section: Search bar moved closer to the left */}
-          <div className="flex-1 flex justify-start">
+          <div className="flex-1 flex items-center gap-4">
             <input
               type="text"
               placeholder="Search Successors..."
               value={searchQuery}
               onChange={(e) => handleSearch(e.target.value)}
-              className="p-2 border rounded w-full max-w-md bg-white/90 outline-none focus:ring-2 focus:ring-orange-500"
+              className="p-2 border rounded w-full max-w-xs bg-white/90 outline-none"
             />
+            <button
+              onClick={() =>
+                exportToCSV(filteredSuccessors, "Successor_List_Export")
+              }
+              className="bg-green-700 text-white px-3 py-2 rounded font-bold text-[10px] uppercase"
+            >
+              Export List
+            </button>
           </div>
 
-          <div className="flex items-center gap-2 flex-1 justify-end">
+          <div className="flex items-center gap-2 justify-end">
             <button
               onClick={openAddModal}
-              className="bg-[#ce5703] hover:bg-orange-700 text-white px-3 py-2 rounded font-bold text-[10px] uppercase"
+              className="bg-[#ce5703] text-white px-3 py-2 rounded font-bold text-[10px] uppercase"
             >
               Add Successor
             </button>
             <button
               onClick={() => router.push("/home")}
-              className="bg-gray-800 hover:bg-black text-white px-3 py-2 rounded font-bold text-[10px] uppercase"
+              className="bg-gray-800 text-white px-3 py-2 rounded font-bold text-[10px] uppercase"
             >
               Back to Members
             </button>
             <button
               onClick={handleLogout}
-              className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded font-bold text-[10px] uppercase transition-all"
+              className="bg-red-600 text-white px-3 py-2 rounded font-bold text-[10px] uppercase"
             >
               Logout
             </button>
           </div>
         </div>
       </div>
-
-      {/* TABLE */}
-      <div className="flex-grow p-6 relative z-10">
-        <div className="text-black text-4xl font-bold mb-2">Successors</div>
-        <div className="bg-transparent rounded-xl shadow-2xl overflow-hidden border border-gray-200">
-          <table className="w-full text-left border-collapse">
-            <thead className="bg-[#b7df69] text-white uppercase text-xs">
+      {/* Main Table */}
+      <div className="flex-grow p-4 relative z-10">
+        <div className="text-black text-3xl hidden lg:block font-bold mb-2">
+          Sucessors
+        </div>
+        <div className="bg-white rounded-xl shadow-2xl overflow-hidden border">
+          <table className="w-full text-left">
+            <thead className="bg-[#b7df69] text-white uppercase text-[10px]">
               <tr>
-                <th className="p-4">Prefix</th>
-                <th className="p-4">First Name</th>
-                <th className="p-4">Last Name</th>
-                <th className="p-4">Sex</th>
-                <th className="p-4">Suffix</th>
-                <th className="p-4">Date of Birth</th>
-                <th className="p-4">Full Name</th>
+                <th className="px-4 py-2">SUCCESSOR ID</th>
+                <th className="px-4 py-2">PREDECESSOR ID</th>
+                <th className="px-4 py-2">DATE OF BIRTH</th>
+                <th className="px-4 py-2">SEX</th>
+                <th className="px-4 py-2">CATEGORY</th>
+                <th className="px-4 py-2">FULL NAME</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
               {currentData.map((s, idx) => (
                 <tr key={idx} className="hover:bg-green-50 transition-colors">
-                  <td className="p-4 text-xs">{s.Successor_Prefix}</td>
-                  <td className="p-4 text-xs">{s.Successor_First_Name}</td>
-                  <td className="p-4 text-xs">{s.Successor_Surname}</td>
-                  <td className="p-4 text-xs">{s.Successor_Sex}</td>
-                  <td className="p-4 text-xs">{s.Successor_Suffix}</td>
-                  <td className="p-4 text-xs">
-                    {s.Successor_Date_of_Birth
-                      ? s.Successor_Date_of_Birth.substring(0, 10)
-                      : "-"}
+                  <td className="px-4 py-1.5 text-[10px]">
+                    {s.Successor_Membership_ID}
                   </td>
-                  <td className="p-4">
+                  <td className="px-4 py-1.5 text-[10px]">
+                    {s.Predecessor_Membership_ID}
+                  </td>
+                  <td className="px-4 py-1.5 text-[10px]">
+                    {s.Successor_Date_of_Birth?.substring(0, 10) || "-"}
+                  </td>
+                  <td className="px-4 py-1.5 text-[10px]">{s.Successor_Sex}</td>
+                  <td className="px-4 py-1.5 text-[10px]">
+                    {s.Member_Category}
+                  </td>
+                  <td className="px-4 py-1.5">
                     <button
                       onClick={() => setSelectedSuccessor(s)}
-                      className="text-blue-600 font-bold hover:underline text-xs"
+                      className="text-blue-600 font-bold hover:underline text-[10px] uppercase"
                     >
                       {s.Successor_Full_Name}
                     </button>
@@ -394,22 +427,22 @@ export default function SuccessorListPage() {
               ))}
             </tbody>
           </table>
-          <div className="p-2 bg-white/60 flex justify-between items-center border-t">
-            <span className="text-sm text-gray-600 font-medium">
+          <div className="p-2 flex justify-between items-center border-t text-xs">
+            <span>
               Page {currentPage} of {totalPages}
             </span>
             <div className="flex gap-2">
               <button
                 disabled={currentPage === 1}
                 onClick={() => setCurrentPage((p) => p - 1)}
-                className="px-4 py-1 bg-white border rounded disabled:opacity-50 text-xs font-bold"
+                className="px-3 py-1 border rounded font-bold"
               >
                 Prev
               </button>
               <button
                 disabled={currentPage === totalPages}
                 onClick={() => setCurrentPage((p) => p + 1)}
-                className="px-4 py-1 bg-white border rounded disabled:opacity-50 text-xs font-bold"
+                className="px-3 py-1 border rounded font-bold"
               >
                 Next
               </button>
@@ -417,12 +450,12 @@ export default function SuccessorListPage() {
           </div>
         </div>
       </div>
-
+      {/* Details Modal */}
       {selectedSuccessor && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
-            <div className="p-6 border-b flex justify-between items-center rounded-t-xl bg-[#b7df69]">
-              <h2 className="text-2xl font-black text-gray-800 uppercase">
+            <div className="p-6 border-b flex justify-between items-center bg-[#b7df69]">
+              <h2 className="text-xl font-black uppercase">
                 Successor Details
               </h2>
               <button
@@ -432,75 +465,43 @@ export default function SuccessorListPage() {
                 &times;
               </button>
             </div>
-            <div className="p-6 overflow-y-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="p-6 overflow-y-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {Object.entries(selectedSuccessor).map(([key, val]) => (
-                <div key={key} className="border-b border-gray-100 pb-2">
-                  <p className="text-[10px] uppercase text-gray-400 font-bold">
+                <div key={key} className="border-b pb-2">
+                  <p className="text-[9px] uppercase text-gray-400 font-bold">
                     {key.replace(/_/g, " ")}
                   </p>
-                  <p className="text-gray-800 font-medium">
+                  <p className="text-gray-800 font-medium text-sm">
                     {key.toLowerCase().includes("date") &&
                     typeof val === "string"
                       ? val.substring(0, 10)
                       : String(val || "N/A")}
                   </p>
-                  {key === "Successor_Date_of_Birth" && (
-                    <div className="mt-1 p-1  rounded">
-                      <p className="text-[9px] uppercase font-bold tracking-tighter">
-                        {selectedSuccessor.Successor_Date_of_Death
-                          ? "Age at Death"
-                          : "Current Age"}
-                      </p>
-                      <p className="text-blue-700 font-bold text-sm">
-                        {calculateAge(
-                          selectedSuccessor.Successor_Date_of_Birth,
-                          selectedSuccessor.Successor_Date_of_Death,
-                        )}{" "}
-                        years old
-                      </p>
-                    </div>
-                  )}
-                  {key === "Successor_Date_of_Membership" && (
-                    <div className="mt-1 p-1  rounded">
-                      <p className="text-[9px] uppercase font-bold tracking-tighter">
-                        {selectedSuccessor.Successor_Date_of_Termination
-                          ? "Length of Membership"
-                          : "Years of Membership"}
-                      </p>
-                      <p className="text-green-700 font-bold text-sm">
-                        {calculateYearsOfMembership(
-                          selectedSuccessor.Successor_Date_of_Membership,
-                          selectedSuccessor.Successor_Date_of_Termination,
-                        )}
-                        years
-                      </p>
-                    </div>
-                  )}
                 </div>
               ))}
             </div>
-            <div className="p-6 border-t bg-gray-50 flex gap-3">
+            <div className="p-4 border-t bg-gray-50 flex gap-3">
               <button
                 onClick={() => {
                   openEditModal(selectedSuccessor);
                   setSelectedSuccessor(null);
                 }}
-                className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-bold"
+                className="flex-1 bg-blue-600 text-white py-2 rounded-lg font-bold text-xs uppercase"
               >
-                EDIT
+                Edit Information
               </button>
               <button
                 onClick={() => setSelectedSuccessor(null)}
-                className="flex-1 bg-gray-200 text-gray-800 py-3 rounded-lg font-bold hover:bg-gray-300 transition-all"
+                className="flex-1 bg-gray-200 py-2 rounded-lg font-bold text-xs uppercase"
               >
-                CLOSE
+                Close
               </button>
             </div>
           </div>
         </div>
       )}
-
       {/* SYSTEM ACTIVITY LOGS MODAL */}
+      //{" "}
       {isLogsModalOpen && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/70 backdrop-blur-md p-4">
           <div className="bg-white rounded-xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
@@ -527,6 +528,12 @@ export default function SuccessorListPage() {
                 className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded font-bold text-xs uppercase transition-all"
               >
                 Show All Logs
+              </button>
+              <button
+                onClick={() => exportToCSV(logs, "System_Logs_Export")}
+                className="bg-green-700 hover:bg-green-800 text-white px-3 py-1 rounded font-bold text-[10px] uppercase ml-auto"
+              >
+                Export Logs
               </button>
             </div>
             <div className="flex-grow overflow-auto p-6">
@@ -604,7 +611,6 @@ export default function SuccessorListPage() {
           </div>
         </div>
       )}
-
       {/* ADD/EDIT MODAL */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/80 p-4">
@@ -883,7 +889,7 @@ export default function SuccessorListPage() {
 function Input({ label, name, value, onChange, disabled = false }: any) {
   return (
     <div className="flex flex-col">
-      <label className="text-[10px] font-bold uppercase text-gray-500">
+      <label className="text-[9px] font-bold uppercase text-gray-500">
         {label}
       </label>
       <input
@@ -892,15 +898,16 @@ function Input({ label, name, value, onChange, disabled = false }: any) {
         value={value || ""}
         onChange={onChange}
         disabled={disabled}
-        className="p-2 border rounded text-xs bg-white disabled:bg-gray-100"
+        className="p-1.5 border rounded text-[10px] bg-white disabled:bg-gray-100 uppercase"
       />
     </div>
   );
 }
+
 function DatalistInput({ label, name, value, options, onChange, listId }: any) {
   return (
     <div className="flex flex-col">
-      <label className="text-[10px] font-bold uppercase text-gray-500">
+      <label className="text-[9px] font-bold uppercase text-gray-500">
         {label}
       </label>
       <input
@@ -908,7 +915,7 @@ function DatalistInput({ label, name, value, options, onChange, listId }: any) {
         name={name}
         value={value || ""}
         onChange={onChange}
-        className="p-2 border rounded text-xs bg-white uppercase"
+        className="p-1.5 border rounded text-[10px] bg-white uppercase"
       />
       <datalist id={listId}>
         {options.map((o: string) => (
@@ -918,17 +925,18 @@ function DatalistInput({ label, name, value, options, onChange, listId }: any) {
     </div>
   );
 }
+
 function Select({ label, name, value, options, onChange }: any) {
   return (
     <div className="flex flex-col">
-      <label className="text-[10px] font-bold uppercase text-gray-500">
+      <label className="text-[9px] font-bold uppercase text-gray-500">
         {label}
       </label>
       <select
         name={name}
         value={value || ""}
         onChange={onChange}
-        className="p-2 border rounded text-xs bg-white"
+        className="p-1.5 border rounded text-[10px] bg-white uppercase"
       >
         <option value="">-- SELECT --</option>
         {options.map((o: string) => (
@@ -940,18 +948,19 @@ function Select({ label, name, value, options, onChange }: any) {
     </div>
   );
 }
+
 function DateInput({ label, name, value, onChange }: any) {
   return (
     <div className="flex flex-col">
-      <label className="text-[10px] font-bold uppercase text-gray-500">
+      <label className="text-[9px] font-bold uppercase text-gray-500">
         {label}
       </label>
       <input
         type="date"
         name={name}
-        value={value ? value.substring(0, 10) : ""}
+        value={value?.substring(0, 10) || ""}
         onChange={onChange}
-        className="p-2 border rounded text-xs bg-white"
+        className="p-1.5 border rounded text-[10px] bg-white"
       />
     </div>
   );
