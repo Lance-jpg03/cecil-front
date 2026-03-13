@@ -1,4 +1,4 @@
-// // src/app/home/page.tsx
+// src/app/home/page.tsx
 
 "use client";
 
@@ -90,6 +90,7 @@ export default function HomePage() {
   const [members, setMembers] = useState<Member[]>([]);
   const [filteredMembers, setFilteredMembers] = useState<Member[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("ALL");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 11;
 
@@ -105,7 +106,6 @@ export default function HomePage() {
 
   const [saving, setSaving] = useState(false);
 
-  // Sync Full Name automatically
   useEffect(() => {
     if (isModalOpen) {
       const full =
@@ -161,31 +161,79 @@ export default function HomePage() {
     fetchMembers();
   }, []);
 
-  const handleSearch = (query: string) => {
+  const handleSearchAndFilter = (query: string, category: string) => {
     setSearchQuery(query);
+    setSelectedCategory(category);
     setCurrentPage(1);
 
-    if (!query.trim()) {
-      setFilteredMembers(members);
+    let filtered = members;
+
+    if (category !== "ALL") {
+      filtered = filtered.filter((m) => {
+        const cat = String(m.Member_Category || "").toUpperCase();
+        if (category === "MEMBER") return cat.includes("COMPOSER");
+        if (category === "PUBLISHERS") return cat.includes("PUBLISHER");
+        if (category === "COPYRIGHT OWNER")
+          return cat.includes("COPYRIGHT OWNER");
+        return true;
+      });
+    }
+
+    if (query.trim()) {
+      const lowerQuery = query.toLowerCase();
+      filtered = filtered.filter((m) => {
+        return (
+          String(m.Name || "")
+            .toLowerCase()
+            .includes(lowerQuery) ||
+          String(m.First_Name || "")
+            .toLowerCase()
+            .includes(lowerQuery) ||
+          String(m.Last_Name || "")
+            .toLowerCase()
+            .includes(lowerQuery) ||
+          String(m.Member_No || "")
+            .toLowerCase()
+            .includes(lowerQuery)
+        );
+      });
+    }
+
+    setFilteredMembers(filtered);
+  };
+
+  const exportToCSV = (data: any[], filename: string) => {
+    if (!data || data.length === 0) {
+      alert("No data available to export.");
       return;
     }
 
-    const lowerQuery = query.toLowerCase();
-    const filtered = members.filter((m) => {
-      const fullName = String(m.Name || "").toLowerCase();
-      const firstName = String(m.First_Name || "").toLowerCase();
-      const lastName = String(m.Last_Name || "").toLowerCase();
-      const memberNo = String(m.Member_No || "").toLowerCase();
+    // Get all possible keys from all objects in the array to ensure no column is missed
+    const allKeys = Array.from(
+      new Set(data.flatMap((obj) => Object.keys(obj))),
+    );
 
-      return (
-        fullName.includes(lowerQuery) ||
-        firstName.includes(lowerQuery) ||
-        lastName.includes(lowerQuery) ||
-        memberNo.includes(lowerQuery)
-      );
-    });
+    const headers = allKeys.join(",");
+    const rows = data.map((obj) =>
+      allKeys
+        .map((key) => {
+          const val = obj[key];
+          return `"${String(val || "").replace(/"/g, '""')}"`;
+        })
+        .join(","),
+    );
 
-    setFilteredMembers(filtered);
+    const csvContent = "\uFEFF" + headers + "\n" + rows.join("\n"); // Added BOM for Excel UTF-8 support
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `${filename}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const handleLogout = async () => {
@@ -221,14 +269,14 @@ export default function HomePage() {
   const clearLogsDisplay = () => setLogs([]);
   const showAllLogs = () => setLogs(allLogs);
 
-  function formatDatePH(dateString: string): string {
+  // Updated function signature to accept null/undefined
+  function formatDatePH(dateString: string | null | undefined): string {
     if (!dateString) return "N/A";
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return "Invalid Date";
     return date.toISOString().split("T")[0];
   }
 
-  // UPDATED: Now accounts for Date of Death
   function calculateAge(
     dob: string | undefined | null,
     dod?: string | null,
@@ -236,10 +284,8 @@ export default function HomePage() {
     if (!dob) return "0";
     const birthDate = new Date(dob);
     if (isNaN(birthDate.getTime())) return "0";
-
     const endDate = dod ? new Date(dod) : new Date();
     if (isNaN(endDate.getTime())) return "0";
-
     let age = endDate.getFullYear() - birthDate.getFullYear();
     const m = endDate.getMonth() - birthDate.getMonth();
     if (m < 0 || (m === 0 && endDate.getDate() < birthDate.getDate())) {
@@ -255,10 +301,8 @@ export default function HomePage() {
     if (!joinDate) return "0";
     const membershipDate = new Date(joinDate);
     if (isNaN(membershipDate.getTime())) return "0";
-
     const endDate = termDate ? new Date(termDate) : new Date();
     if (isNaN(endDate.getTime())) return "0";
-
     let years = endDate.getFullYear() - membershipDate.getFullYear();
     const m = endDate.getMonth() - membershipDate.getMonth();
     if (m < 0 || (m === 0 && endDate.getDate() < membershipDate.getDate())) {
@@ -311,10 +355,9 @@ export default function HomePage() {
   );
 
   return (
-    <main className="min-h-screen w-full bg-[url('/BG.png')] lg:bg-[url('/BG.png')] bg-fixed bg-no-repeat bg-[length:100%_100%] bg-center flex flex-col font-sans text-black">
+    <main className="min-h-screen w-full bg-[url('/BG.png')] bg-fixed bg-no-repeat bg-[length:100%_100%] bg-center flex flex-col font-sans text-black">
       <div className="relative w-full bg-[#b7df69] p-3 sticky top-0 z-50 shadow-lg">
         <div className="w-full px-1 flex justify-between items-center mx-auto gap-8">
-          {/* 1. Left Section: Logo and One-liner Title */}
           <div className="flex items-center gap-4 flex-initial shrink-0">
             <button
               onClick={openLogsModal}
@@ -328,24 +371,42 @@ export default function HomePage() {
                 priority
               />
             </button>
-            {/* whitespace-nowrap ensures it stays on one line */}
             <div className="text-white text-xl hidden lg:block font-bold whitespace-nowrap">
               PROJECT CECIL: MEMBERS INFORMATION MASTERLIST
             </div>
           </div>
 
-          {/* 2. Middle Section: Search bar moved closer to the left */}
-          <div className="flex-1 flex justify-start">
+          <div className="flex-1 flex items-center gap-4">
             <input
               type="text"
-              placeholder="Search Successors..."
+              placeholder="Search Members..."
               value={searchQuery}
-              onChange={(e) => handleSearch(e.target.value)}
-              className="p-2 border rounded w-full max-w-md bg-white/90 outline-none focus:ring-2 focus:ring-orange-500"
+              onChange={(e) =>
+                handleSearchAndFilter(e.target.value, selectedCategory)
+              }
+              className="p-2 border rounded w-full max-w-xs bg-white/90 outline-none focus:ring-2 focus:ring-orange-500"
             />
+            <select
+              value={selectedCategory}
+              onChange={(e) =>
+                handleSearchAndFilter(searchQuery, e.target.value)
+              }
+              className="p-2 border rounded bg-white text-xs font-bold uppercase"
+            >
+              <option value="ALL">ALL CATEGORIES</option>
+              <option value="MEMBER">MEMBERS</option>
+              <option value="PUBLISHERS">PUBLISHERS</option>
+              <option value="COPYRIGHT OWNER">COPYRIGHT OWNERS</option>
+            </select>
+            <button
+              onClick={() => exportToCSV(filteredMembers, "Member_List_Export")}
+              className="bg-green-700 hover:bg-green-800 text-white px-3 py-2 rounded font-bold text-[10px] uppercase"
+            >
+              Export List
+            </button>
           </div>
 
-          <div className="flex items-center gap-2 flex-1 justify-end">
+          <div className="flex items-center gap-2 flex-initial justify-end">
             <button
               onClick={openAddModal}
               className="bg-[#ce5703] hover:bg-orange-700 text-white px-3 py-2 rounded font-bold text-[10px] uppercase transition-all"
@@ -372,7 +433,7 @@ export default function HomePage() {
         <div className="text-black text-4xl hidden lg:block font-bold mb-2">
           Members
         </div>
-        <div className="bg-transparent rounded-xl shadow-2xl overflow-hidden border border-gray-200 lg[25%]">
+        <div className="bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-200">
           <table className="w-full text-left border-collapse">
             <thead className="bg-[#b7df69] text-white uppercase text-xs">
               <tr>
@@ -392,14 +453,15 @@ export default function HomePage() {
                   className="hover:bg-green-50 transition-colors"
                 >
                   <td className="p-4 text-xs">{m.Membership_ID}</td>
-                  <td className="p-4 text-xs">{m.Date_of_Membership}</td>
-                  <td className="p-4 text-xs">{m.Date_of_Birth}</td>
+                  <td className="p-4 text-xs">
+                    {formatDatePH(m.Date_of_Membership)}
+                  </td>
+                  <td className="p-4 text-xs">
+                    {formatDatePH(m.Date_of_Birth)}
+                  </td>
                   <td className="p-4 text-xs">{m.IPI_Name_Number}</td>
                   <td className="p-4 text-xs">{m.IPI_Base_Number}</td>
                   <td className="p-4 text-xs">{m.Member_Category}</td>
-                  <td className="p-4 text-xs">
-                    {m.Date_of_Birth?.substring(0, 10)}
-                  </td>
                   <td className="p-4">
                     <button
                       onClick={() => setSelectedMember(m)}
@@ -412,7 +474,7 @@ export default function HomePage() {
               ))}
             </tbody>
           </table>
-          <div className="p-2 bg-transparent flex justify-between items-center border-t">
+          <div className="p-2 bg-white flex justify-between items-center border-t">
             <span className="text-sm text-gray-600">
               Page {currentPage} of {totalPages}
             </span>
@@ -451,51 +513,53 @@ export default function HomePage() {
               </button>
             </div>
             <div className="p-6 overflow-y-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {Object.entries(selectedMember).map(([key, val]) => (
-                <div key={key} className="border-b border-gray-100 pb-2">
-                  <p className="text-[10px] uppercase text-gray-400 font-bold">
-                    {key.replace(/_/g, " ")}
-                  </p>
-                  <p className="text-gray-800 font-medium">
-                    {key.toLowerCase().includes("date") &&
-                    typeof val === "string"
-                      ? val.substring(0, 10)
-                      : String(val || "N/A")}
-                  </p>
-                  {key === "Date_of_Birth" && (
-                    <div className="mt-1 p-1  rounded">
-                      <p className="text-[9px] uppercase font-bold tracking-tighter">
-                        {selectedMember.Date_of_Death
-                          ? "Age at Death"
-                          : "Current Age"}
-                      </p>
-                      <p className="text-blue-700 font-bold text-sm">
-                        {calculateAge(
-                          selectedMember.Date_of_Birth,
-                          selectedMember.Date_of_Death,
-                        )}{" "}
-                        years old
-                      </p>
-                    </div>
-                  )}
-                  {key === "Date_of_Membership" && (
-                    <div className="mt-1 p-1  rounded">
-                      <p className="text-[9px] uppercase font-bold tracking-tighter">
-                        {selectedMember.Date_of_Membership_Termination_Resignation
-                          ? "Length of Membership"
-                          : "Years of Membership"}
-                      </p>
-                      <p className="text-green-700 font-bold text-sm">
-                        {calculateYearsOfMembership(
-                          selectedMember.Date_of_Membership,
-                          selectedMember.Date_of_Membership_Termination_Resignation,
-                        )}
-                        years
-                      </p>
-                    </div>
-                  )}
-                </div>
-              ))}
+              {Object.entries(selectedMember)
+                .filter(([key]) => key !== "CAE_No")
+                .map(([key, val]) => (
+                  <div key={key} className="border-b border-gray-100 pb-2">
+                    <p className="text-[10px] uppercase text-gray-400 font-bold">
+                      {key.replace(/_/g, " ")}
+                    </p>
+                    <p className="text-gray-800 font-medium">
+                      {key.toLowerCase().includes("date") &&
+                      typeof val === "string"
+                        ? val.substring(0, 10)
+                        : String(val || "N/A")}
+                    </p>
+                    {key === "Date_of_Birth" && (
+                      <div className="mt-1 p-1 rounded">
+                        <p className="text-[9px] uppercase font-bold tracking-tighter">
+                          {selectedMember.Date_of_Death
+                            ? "Age at Death"
+                            : "Current Age"}
+                        </p>
+                        <p className="text-blue-700 font-bold text-sm">
+                          {calculateAge(
+                            selectedMember.Date_of_Birth,
+                            selectedMember.Date_of_Death,
+                          )}{" "}
+                          years old
+                        </p>
+                      </div>
+                    )}
+                    {key === "Date_of_Membership" && (
+                      <div className="mt-1 p-1 rounded">
+                        <p className="text-[9px] uppercase font-bold tracking-tighter">
+                          {selectedMember.Date_of_Membership_Termination_Resignation
+                            ? "Length of Membership"
+                            : "Years of Membership"}
+                        </p>
+                        <p className="text-green-700 font-bold text-sm">
+                          {calculateYearsOfMembership(
+                            selectedMember.Date_of_Membership,
+                            selectedMember.Date_of_Membership_Termination_Resignation,
+                          )}{" "}
+                          years
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                ))}
             </div>
             <div className="p-6 border-t bg-gray-50 flex gap-3">
               <button
@@ -545,6 +609,12 @@ export default function HomePage() {
               >
                 Show All Logs
               </button>
+              <button
+                onClick={() => exportToCSV(logs, "System_Logs_Export")}
+                className="bg-green-700 hover:bg-green-800 text-white px-4 py-2 rounded font-bold text-xs uppercase ml-auto"
+              >
+                Export Logs
+              </button>
             </div>
             <div className="flex-grow overflow-auto p-6">
               {logsLoading ? (
@@ -552,7 +622,7 @@ export default function HomePage() {
                   Retrieving system logs...
                 </p>
               ) : (
-                <table className="w-full text-left  text-sm">
+                <table className="w-full text-left text-sm">
                   <thead className="top-0 bg-gray-200 uppercase text-[10px] font-bold">
                     <tr>
                       <th className="p-3 border">Log ID</th>
@@ -631,7 +701,6 @@ export default function HomePage() {
               </button>
             </div>
             <div className="p-6 overflow-y-auto grid grid-cols-1 md:grid-cols-4 gap-4">
-
               <Input
                 label="Membership ID"
                 name="Membership_ID"
@@ -694,7 +763,7 @@ export default function HomePage() {
                   onChange={handleInputChange}
                 />
                 <div className="px-2 py-1 rounded border border-blue-200">
-                  <span className="text-[10px] font-bold  uppercase">
+                  <span className="text-[10px] font-bold uppercase">
                     {formData.Date_of_Death ? "Age at Death: " : "Age:"}
                   </span>
                   <span className="text-xs font-black text-blue-800">
@@ -861,7 +930,7 @@ export default function HomePage() {
                   value={formData.Date_of_Membership}
                   onChange={handleInputChange}
                 />
-                <div className="px-2 py-1  rounded border border-green-200">
+                <div className="px-2 py-1 rounded border border-green-200">
                   <span className="text-[10px] font-bold text-black uppercase">
                     {formData.Date_of_Membership_Termination_Resignation
                       ? "Length of Membership: "
@@ -922,7 +991,6 @@ export default function HomePage() {
                 value={formData.Remarks}
                 onChange={handleInputChange}
               />
-
               <Input
                 label="Related Files"
                 name="Related_files"
@@ -933,12 +1001,7 @@ export default function HomePage() {
             <div className="p-6 border-t bg-gray-50 flex gap-4">
               <button
                 onClick={handleSubmit}
-                className={`flex-1 py-3 rounded-lg font-bold uppercase
-                ${
-                  saving
-                    ? "bg-gray-400 cursor-not-allowed"
-                    : "bg-green-600 hover:bg-green-700 text-white"
-                }`}
+                className={`flex-1 py-3 rounded-lg font-bold uppercase ${saving ? "bg-gray-400 cursor-not-allowed" : "bg-green-600 hover:bg-green-700 text-white"}`}
               >
                 {saving ? "Saving..." : "Save Changes"}
               </button>
