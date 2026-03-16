@@ -143,7 +143,11 @@ export default function SuccessorListPage() {
   useEffect(() => {
     if (isModalOpen) {
       const full =
-        `${formData.Successor_First_Name || ""} ${formData.Successor_Middle_Name || ""} ${formData.Successor_Surname || ""}${formData.Successor_Suffix ? ` ${formData.Successor_Suffix}` : ""}`
+        `${formData.Successor_First_Name || ""} 
+        ${formData.Successor_Middle_Name || ""} 
+        ${formData.Successor_Surname || ""}
+        ${formData.Successor_Suffix ? ` 
+          ${formData.Successor_Suffix}` : ""}`
           .trim()
           .replace(/\s+/g, " ");
 
@@ -501,7 +505,6 @@ export default function SuccessorListPage() {
         </div>
       )}
       {/* SYSTEM ACTIVITY LOGS MODAL */}
-      //{" "}
       {isLogsModalOpen && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/70 backdrop-blur-md p-4">
           <div className="bg-white rounded-xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
@@ -686,7 +689,11 @@ export default function SuccessorListPage() {
               <Input
                 label="Full Name"
                 name="Successor_Full_Name"
-                value={`${formData.Successor_First_Name || ""} ${formData.Successor_Middle_Name || ""} ${formData.Successor_Surname || ""}${formData.Successor_Suffix ? ` ${formData.Successor_Suffix}` : ""}`.trim()}
+                value={`${formData.Successor_First_Name || ""}
+                 ${formData.Successor_Middle_Name || ""} 
+                 ${formData.Successor_Surname || ""}
+                 ${formData.Successor_Suffix ? ` 
+                  ${formData.Successor_Suffix}` : ""}`.trim()}
                 disabled
               />
 

@@ -150,7 +150,7 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => setShowPrivacy(true)}
-                className="text-[9px] uppercase tracking-widest text-gray-500 hover:text-[#f0bb0e] transition-colors"
+                className="text-[10px] uppercase tracking-widest text-gray-500 hover:text-[#f0bb0e] transition-colors"
               >
                 View Privacy Notice
               </button>

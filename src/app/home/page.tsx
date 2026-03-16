@@ -338,6 +338,11 @@ export default function HomePage() {
     currentPage * itemsPerPage,
   );
 
+    const formatDateOnly = (dateString: string) => {
+    if (!dateString) return "-";
+    return String(dateString).split("T")[0];
+  };
+
   return (
     <main className="min-h-screen w-full bg-[url('/BG.png')] bg-fixed bg-no-repeat bg-[length:100%_100%] bg-center flex flex-col font-sans text-black">
       <div className="relative w-full bg-[#b7df69] p-3 sticky top-0 z-50 shadow-lg">
@@ -560,11 +565,11 @@ export default function HomePage() {
         </div>
       )}
 
-      {isLogsModalOpen && (
+        {isLogsModalOpen && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/70 backdrop-blur-md p-4">
           <div className="bg-white rounded-xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
-            <div className="p-4 border-b bg-[#b7df69] text-white flex justify-between items-center">
-              <h2 className="text-xl font-black uppercase">
+            <div className="p-6 border-b bg-[#b7df69] text-white flex justify-between items-center">
+              <h2 className="text-2xl font-black uppercase">
                 System Activity Logs
               </h2>
               <button
@@ -574,16 +579,16 @@ export default function HomePage() {
                 &times;
               </button>
             </div>
-            <div className="p-3 bg-gray-100 flex gap-4 border-b">
+            <div className="p-4 bg-gray-100 flex gap-4 border-b">
               <button
                 onClick={clearLogsDisplay}
-                className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded font-bold text-[10px] uppercase"
+                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded font-bold text-xs uppercase transition-all"
               >
                 Clear Today's Logs
               </button>
               <button
                 onClick={showAllLogs}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded font-bold text-[10px] uppercase"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded font-bold text-xs uppercase transition-all"
               >
                 Show All Logs
               </button>
@@ -594,55 +599,61 @@ export default function HomePage() {
                 Export Logs
               </button>
             </div>
-            <div className="flex-grow overflow-auto p-4">
+            <div className="flex-grow overflow-auto p-6">
               {logsLoading ? (
                 <p className="text-center py-10 font-bold animate-pulse text-gray-500">
                   Retrieving system logs...
                 </p>
               ) : (
-                <table className="w-full text-left text-xs">
-                  <thead className="top-0 bg-gray-200 uppercase text-[9px] font-bold">
+                <table className="w-full text-left  text-sm">
+                  <thead className="top-0 bg-gray-200 uppercase text-[10px] font-bold">
                     <tr>
-                      <th className="p-2 border">Log ID</th>
-                      <th className="p-2 border">Membership ID</th>
-                      <th className="p-2 border">Action</th>
-                      <th className="p-2 border">Updated By</th>
-                      <th className="p-2 border">Updated At</th>
-                      <th className="p-2 border">Details</th>
+                      <th className="p-3 border">Log ID</th>
+                      <th className="p-3 border">Membership ID</th>
+                      <th className="p-3 border">Action</th>
+                      <th className="p-3 border">Updated By</th>
+                      <th className="p-3 border">Updated At</th>
+                      <th className="p-3 border">Details</th>
                     </tr>
                   </thead>
                   <tbody>
                     {logs.length > 0 ? (
-                      logs.map((log) => (
-                        <tr
-                          key={log.Log_ID}
-                          className="hover:bg-gray-50 border-b"
-                        >
-                          <td className="p-2 border">{log.Log_ID}</td>
-                          <td className="p-2 border font-mono">
-                            {log.Membership_ID}
-                          </td>
-                          <td className="p-2 border">
-                            <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-[9px] font-bold">
-                              {log.Action}
-                            </span>
-                          </td>
-                          <td className="p-2 border font-bold">
-                            {log.Changed_By}
-                          </td>
-                          <td className="p-2 border whitespace-nowrap">
-                            {formatDatePH(log.Changed_At)}
-                          </td>
-                          <td className="p-2 border italic text-gray-500">
-                            {log.Details || "-"}
-                          </td>
-                        </tr>
-                      ))
+                      logs.map((log: any) => {
+                        const updatedBy =
+                          log.Changed_By || log.UpdatedBy || log.Updated_By;
+                        return (
+                          <tr
+                            key={log.Log_ID || log.LogID}
+                            className="hover:bg-gray-50 border-b transition"
+                          >
+                            <td className="p-3 border text-center">
+                              {log.Log_ID || log.LogID || "-"}
+                            </td>
+                            <td className="p-3 border font-mono">
+                              {log.Membership_ID || log.Member_No || "-"}
+                            </td>
+                            <td className="p-3 border">
+                              <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-[10px] font-bold uppercase">
+                                {log.Action || log.ActionType || "-"}
+                              </span>
+                            </td>
+                            <td className="p-3 border font-bold text-gray-800">
+                              {updatedBy}
+                            </td>
+                            <td className="p-3 border whitespace-nowrap">
+                              {formatDateOnly(log.Changed_At || log.UpdatedAt)}
+                            </td>
+                            <td className="p-3 border italic text-gray-500">
+                              {log.Details || log.ActionDetails || "-"}
+                            </td>
+                          </tr>
+                        );
+                      })
                     ) : (
                       <tr>
                         <td
                           colSpan={6}
-                          className="p-10 text-center text-gray-400"
+                          className="p-10 text-center text-gray-400 font-semibold"
                         >
                           No logs found for this period.
                         </td>
@@ -652,10 +663,10 @@ export default function HomePage() {
                 </table>
               )}
             </div>
-            <div className="p-3 border-t bg-gray-50 flex justify-end">
+            <div className="p-4 border-t bg-gray-50 flex justify-end">
               <button
                 onClick={() => setIsLogsModalOpen(false)}
-                className="bg-gray-800 text-white px-6 py-2 rounded font-bold uppercase hover:bg-black text-[10px]"
+                className="bg-gray-800 text-white px-8 py-2 rounded font-bold uppercase hover:bg-black transition-all"
               >
                 Close Logs
               </button>

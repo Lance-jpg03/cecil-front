@@ -25,164 +25,8 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* Login Page Styles */
-.login-container {
-  @apply min-h-screen bg-black text-white flex items-center justify-center;
-}
-
-.login-box {
-  @apply w-full max-w-md p-6 bg-gray-900 rounded-lg shadow-lg space-y-6;
-}
-
-.login-title {
-  @apply text-2xl font-bold text-center;
-}
-
-.login-input {
-  @apply w-full px-4 py-2 rounded bg-gray-800 text-white border border-gray-700;
-}
-
-.login-button {
-  @apply w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded disabled:opacity-50;
-}
-
-.login-error {
-  @apply text-red-500 text-center;
-}
-
-/*Landing Page Styles */
-.landing-container {
-  @apply min-h-screen bg-black text-white flex items-center justify-center;
-}
-
-.landing-box {
-  @apply text-center space-y-6 p-8 rounded-lg shadow-lg bg-gray-900 max-w-xl w-full;
-}
-
-.landing-title {
-  @apply text-3xl font-bold;
-}
-
-.landing-buttons {
-  @apply flex flex-col gap-4;
-}
-
-.landing-button {
-  @apply bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded transition duration-200 cursor-pointer;
-}
-
-.pagination {
-  @apply flex items-center space-x-2 mt-6 flex justify-center;
-}
-
-.pagination-button {
-  @apply bg-gray-100 border border-gray-300 py-2 px-4 rounded-md cursor-pointer transition-colors duration-300 hover:bg-gray-300 disabled:bg-gray-200 disabled:cursor-not-allowed;
-}
-
-/* search css */
-.search-container {
-  @apply container mx-auto p-6 grid grid-cols-1 md:grid-cols-2 gap-6;
-}
-
-.header {
-  @apply text-3xl font-bold text-center mb-6;
-}
-
-.search-input {
-  @apply cursor-pointer p-4 bg-gray-100 rounded-lg hover:bg-gray-200 transition;
-}
-
-/* right page */
-.member-details {
-  @apply p-6 bg-gray-50 rounded-lg shadow;
-}
-
-.edit-cursor {
-  @apply p-2 border rounded bg-gray-200 cursor-not-allowed;
-}
-
-.save-btn {
-  @apply bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded;
-}
-
-/* navbar */
-.navbar {
-  @apply bg-gray-800 p-4 sticky top-0 z-50;
-}
-
-.cont-nav {
-  @apply container mx-auto flex flex-col md:flex-row items-center justify-between;
-}
-
-.bar {
-  @apply flex items-center space-x-4 mb-2 md:mb-0;
-}
-
-.directory {
-  @apply text-white text-2xl font-bold;
-}
-
-.return-btn {
-  @apply bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded;
-}
-
-.search {
-  @apply w-full md:w-auto md:flex-grow md:max-w-md;
-}
-
-.search-cont {
-  @apply w-full px-4 py-2 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500;
-}
-
-.button {
-  @apply py-4 px-8 bg-[#3dc270] border-none rounded-xl text-black font-bold cursor-pointer hover:bg-[#32b85a];
-}
-
-.cont-nav {
-  @apply w-full flex flex-row items-center justify-between;
-}
-
-.bar {
-  @apply flex items-center space-x-4 mb-2 md:mb-0;
-}
-
-.directory {
-  @apply text-white text-2xl font-bold;
-}
-
-.login-container {
-  @apply min-h-screen bg-black text-white flex items-center justify-center;
-}
-
-.login-box {
-  @apply w-full max-w-md p-6 bg-gray-900 rounded-lg shadow-lg space-y-6;
-}
-
-.login-title {
-  @apply text-2xl font-bold text-center;
-}
-
-.login-input {
-  @apply w-full px-4 py-2 rounded bg-gray-800 text-white border border-gray-700;
-}
-
-.login-button {
-  @apply w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded disabled:opacity-50;
-}
-
-.login-error {
-  @apply text-red-500 text-center;
-}
-
-.return-btn {
-  @apply bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded;
-}
-
-.footer {
-  @apply absolute inset-0 pointer-events-none z-30 opacity-10 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_2px,3px_100%];
-}
-
 @layer components {
+  /* --- LOGIN PAGE COMPONENTS --- */
   .scanline-overlay {
     @apply absolute inset-0 pointer-events-none z-30 opacity-10 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_2px,3px_100%];
   }
@@ -195,20 +39,12 @@ body {
     @apply absolute right-0 top-0 h-full z-10 flex flex-col transition-all duration-1000 transform;
   }
 
-  .title-container {
-    @apply text-right -mt-24 mb-10;
-  }
-
   .h1-main {
     @apply text-[#75b84f] text-6xl font-bold tracking-tighter uppercase;
   }
 
   .p-credentials {
     @apply text-gray-400/70 text-[12px] font-bold tracking-[0.1em] uppercase mt-1;
-  }
-
-  .login-form {
-    @apply max-w-[330px] w-auto mx-auto flex flex-col space-y-5 px-3;
   }
 
   .form {
@@ -219,23 +55,74 @@ body {
     @apply w-full py-3 bg-[#3b5998] hover:bg-blue-700 text-white font-bold tracking-widest uppercase rounded-xl shadow-md transition-all active:scale-95 disabled:opacity-50;
   }
 
-  .footer-copyright {
-    @apply text-gray-400 text-[10px] tracking-[0.2em] uppercase py-8 text-center w-full;
+  /* --- MASTERLIST & TABLE COMPONENTS --- */
+  .masterlist-container {
+    @apply min-h-screen w-full bg-[url('/BG.png')] bg-fixed bg-no-repeat bg-[length:100%_100%] bg-center flex flex-col font-sans text-black;
   }
-}
 
-.dspSelect {
-  @apply border border-gray-300 px-3 py-1.5 rounded-l text-xs bg-white shadow-sm focus:ring-1 focus:ring-blue-500 outline-none h-[34px] min-w-[150px];
-}
-.billing {
-  @apply border-t border-b border-r border-gray-300 px-3 py-1.5 rounded-r text-xs bg-white shadow-sm focus:ring-1 focus:ring-blue-500 outline-none h-[34px] min-w-[150px];
-}
-.excel {
-  @apply ml-4 bg-yellow-500 hover:bg-yellow-600 text-white text-[10px] font-bold px-4 py-2 rounded shadow-sm transition-all h-[34px];
-}
-.pagination {
-  @apply px-3 py-1 text-[10px] font-bold border border-gray-300 rounded bg-white disabled:opacity-50 hover:bg-gray-100 transition-colors shadow-sm;
-}
-.page {
-  @apply px-4 py-1 border border-gray-300 rounded bg-white text-[10px] font-bold text-gray-700 min-w-[100px] text-center shadow-sm;
+  .header-nav {
+    @apply relative w-full bg-[#b7df69] p-3 sticky top-0 z-50 shadow-lg flex justify-between items-center px-4 gap-8;
+  }
+
+  .search-input {
+    @apply p-2 border rounded w-full max-w-xs bg-white/90 outline-none text-sm;
+  }
+
+  .table-wrapper {
+    @apply bg-white rounded-xl shadow-2xl overflow-hidden border;
+  }
+
+  .table-main {
+    @apply w-full text-left border-collapse;
+  }
+
+  .table-header {
+    @apply bg-[#b7df69] text-white uppercase text-[10px] font-bold;
+  }
+
+  .table-header th {
+    @apply px-4 py-2;
+  }
+
+  .table-row {
+    @apply hover:bg-green-50 transition-colors border-b border-gray-200;
+  }
+
+  .table-cell {
+    @apply px-4 py-1.5 text-[10px] text-black uppercase;
+  }
+
+  .table-cell-name {
+    @apply px-4 py-1.5 text-blue-600 font-bold hover:underline text-[10px] uppercase cursor-pointer;
+  }
+
+  /* --- ACTION BUTTONS --- */
+  .btn-export {
+    @apply bg-green-700 text-white px-3 py-2 rounded font-bold text-[10px] uppercase hover:bg-green-800 transition-all;
+  }
+
+  .btn-add {
+    @apply bg-[#ce5703] text-white px-3 py-2 rounded font-bold text-[10px] uppercase hover:opacity-90 transition-all;
+  }
+
+  .btn-back {
+    @apply bg-gray-800 text-white px-3 py-2 rounded font-bold text-[10px] uppercase hover:bg-black transition-all;
+  }
+
+  .btn-logout {
+    @apply bg-red-600 text-white px-3 py-2 rounded font-bold text-[10px] uppercase hover:bg-red-700 transition-all;
+  }
+
+  /* --- MODAL STYLES --- */
+  .modal-overlay {
+    @apply fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4;
+  }
+
+  .modal-content {
+    @apply bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden;
+  }
+
+  .modal-header {
+    @apply p-6 border-b flex justify-between items-center bg-[#b7df69] text-white;
+  }
 }
