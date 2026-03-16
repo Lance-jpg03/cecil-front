@@ -358,7 +358,7 @@ export default function SuccessorListPage() {
               onClick={() =>
                 exportToCSV(filteredSuccessors, "Successor_List_Export")
               }
-              className="bg-green-700 text-white px-3 py-2 rounded font-bold text-[10px] uppercase"
+              className="bg-green-700 hover:bg-green-800  text-white px-3 py-2 rounded font-bold text-[10px] uppercase"
             >
               Export List
             </button>
@@ -367,19 +367,19 @@ export default function SuccessorListPage() {
           <div className="flex items-center gap-2 justify-end">
             <button
               onClick={openAddModal}
-              className="bg-[#ce5703] text-white px-3 py-2 rounded font-bold text-[10px] uppercase"
+              className="bg-[#ce5703] text-white px-3 py-2 rounded font-bold text-[10px] uppercase cursor-pointer hover:bg-black"
             >
               Add Successor
             </button>
             <button
               onClick={() => router.push("/home")}
-              className="bg-gray-800 text-white px-3 py-2 rounded font-bold text-[10px] uppercase"
+              className="bg-gray-800 text-white px-3 py-2 rounded font-bold text-[10px] uppercase hover:text-black hover:bg-white"
             >
               Back to Members
             </button>
             <button
               onClick={handleLogout}
-              className="bg-red-600 text-white px-3 py-2 rounded font-bold text-[10px] uppercase"
+              className="bg-red-600 text-white px-3 py-2 rounded font-bold text-[10px] uppercase hover:bg-red-800"
             >
               Logout
             </button>

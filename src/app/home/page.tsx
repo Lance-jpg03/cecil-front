@@ -65,7 +65,6 @@ interface Member {
   Bank_Name?: string | null;
   Bank_Account_Info?: string | null;
   Date_of_Membership?: string | null;
-  // Updated to match standardized DB column name
   Date_of_Membership_Termination_Resignation?: string | null;
   Date_Registred_National_Library?: string | null;
   Deed_Of_Assignment?: string | null;
@@ -169,7 +168,7 @@ export default function HomePage() {
     if (category !== "ALL") {
       filtered = filtered.filter((m) => {
         const cat = String(m.Member_Category || "").toUpperCase();
-        if (category === "MEMBER") return cat.includes("COMPOSER");
+        if (category === "COMPOSERS") return cat.includes("COMPOSER");
         if (category === "PUBLISHERS") return cat.includes("PUBLISHER");
         if (category === "COPYRIGHT OWNER")
           return cat.includes("COPYRIGHT OWNER");
@@ -383,7 +382,7 @@ export default function HomePage() {
               className="p-2 border rounded bg-white text-xs font-bold uppercase"
             >
               <option value="ALL">ALL CATEGORIES</option>
-              <option value="MEMBER">MEMBERS</option>
+              <option value="MEMBER">COMPOSERS</option>
               <option value="PUBLISHERS">PUBLISHERS</option>
               <option value="COPYRIGHT OWNER">COPYRIGHT OWNERS</option>
             </select>
@@ -1008,7 +1007,6 @@ export default function HomePage() {
   );
 }
 
-// Sub-components
 function Input({ label, name, value, onChange, disabled = false }: any) {
   return (
     <div className="flex flex-col">
