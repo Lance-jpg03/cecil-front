@@ -29,6 +29,31 @@ const categoryOptions = [
 ];
 const ynOptions = ["Y", "N"];
 
+const DOC_DEPT_FIELDS = [
+  "Member_No",
+  "Membership_ID",
+  "Member_Category",
+  "Member_Status",
+  "Last_Name",
+  "First_Name",
+  "Middle_Name",
+  "Suffix",
+  "Name",
+  "Sex",
+  "Prefix",
+  "Band_Name",
+  "Pseudonym",
+  "Date_of_Birth",
+  "Email_Address",
+  "Official_Representative",
+  "Date_of_Membership",
+  "Related_files",
+  "Date_of_Membership_Termination_Resignation",
+  "Date_of_Death",
+  "IPI_Name_Number",
+  "IPI_Base_Number",
+];
+
 interface Member {
   Member_No: string;
   Membership_ID: string;
@@ -80,6 +105,7 @@ interface Log {
   Log_ID: number;
   Membership_ID: string;
   Action: string;
+  Department: string;
   Changed_By: string;
   Changed_At: string;
   Details?: string;
@@ -102,6 +128,11 @@ export default function HomePage() {
   const [logs, setLogs] = useState<Log[]>([]);
   const [logsLoading, setLogsLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    setUserRole(localStorage.getItem("userRole"));
+  }, []);
 
   // Auto-generate Full Name
   useEffect(() => {
@@ -306,7 +337,8 @@ export default function HomePage() {
   const handleSubmit = async () => {
     if (saving) return;
     setSaving(true);
-    const currentUser = localStorage.getItem("username");
+    const currentUser = localStorage.getItem("username") || "SYSTEM";
+    const currentDept = localStorage.getItem("department") || "N/A";
     try {
       const res = await fetch(`${API_BASE}/membership/save`, {
         method: "POST",
@@ -315,6 +347,7 @@ export default function HomePage() {
           ...formData,
           isEdit: isEditMode,
           Changed_By: currentUser,
+          Department: currentDept
         }),
       });
       if (res.ok) {
@@ -337,7 +370,7 @@ export default function HomePage() {
     currentPage * itemsPerPage,
   );
 
-    const formatDateOnly = (dateString: string) => {
+  const formatDateOnly = (dateString: string) => {
     if (!dateString) return "-";
     return String(dateString).split("T")[0];
   };
@@ -506,30 +539,38 @@ export default function HomePage() {
               </button>
             </div>
             <div className="p-6 overflow-y-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              <div className="border-b pb-2">
-                <p className="text-[9px] uppercase text-gray-400 font-bold">
-                  Successor Name
-                </p>
-                {selectedMember.Successor_Full_Name ? (
-                  <button
-                    onClick={() =>
-                      router.push(
-                        `/successorList?search=${selectedMember.Membership_ID}`,
-                      )
-                    }
-                    className="text-blue-600 font-bold hover:underline text-sm uppercase"
-                  >
-                    {selectedMember.Successor_Full_Name}
-                  </button>
-                ) : (
-                  <p className="text-gray-400 text-sm italic">None</p>
-                )}
-              </div>
+              {/* Show Successor only if not in Doc Dept restricted view or if explicitly needed */}
+              {userRole !== "DP004" && (
+                <div className="border-b pb-2">
+                  <p className="text-[9px] uppercase text-gray-400 font-bold">
+                    Successor Name
+                  </p>
+                  {selectedMember.Successor_Full_Name ? (
+                    <button
+                      onClick={() =>
+                        router.push(
+                          `/successorList?search=${selectedMember.Membership_ID}`,
+                        )
+                      }
+                      className="text-blue-600 font-bold hover:underline text-sm uppercase"
+                    >
+                      {selectedMember.Successor_Full_Name}
+                    </button>
+                  ) : (
+                    <p className="text-gray-400 text-sm italic">None</p>
+                  )}
+                </div>
+              )}
+
               {Object.entries(selectedMember)
-                .filter(
-                  ([key]) =>
-                    !["CAE_No", "Successor_Full_Name", "Name"].includes(key),
-                )
+                .filter(([key]) => {
+                  if (userRole === "DP004") {
+                    return DOC_DEPT_FIELDS.includes(key);
+                  }
+                  return !["CAE_No", "Successor_Full_Name", "Name"].includes(
+                    key,
+                  );
+                })
                 .map(([key, val]) => (
                   <div key={key} className="border-b pb-2">
                     <p className="text-[9px] uppercase text-gray-400 font-bold">
@@ -564,7 +605,7 @@ export default function HomePage() {
         </div>
       )}
 
-        {isLogsModalOpen && (
+      {isLogsModalOpen && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/70 backdrop-blur-md p-4">
           <div className="bg-white rounded-xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
             <div className="p-6 border-b bg-[#b7df69] text-white flex justify-between items-center">
@@ -604,12 +645,13 @@ export default function HomePage() {
                   Retrieving system logs...
                 </p>
               ) : (
-                <table className="w-full text-left  text-sm">
-                  <thead className="top-0 bg-gray-200 uppercase text-[10px] font-bold">
+                <table className="w-full text-left text-sm">
+                  <thead className="sticky top-0 bg-gray-200 uppercase text-[10px] font-bold z-10">
                     <tr>
                       <th className="p-3 border">Log ID</th>
                       <th className="p-3 border">Membership ID</th>
                       <th className="p-3 border">Action</th>
+                      <th className="p-3 border">Department</th>
                       <th className="p-3 border">Updated By</th>
                       <th className="p-3 border">Updated At</th>
                       <th className="p-3 border">Details</th>
@@ -618,8 +660,6 @@ export default function HomePage() {
                   <tbody>
                     {logs.length > 0 ? (
                       logs.map((log: any) => {
-                        const updatedBy =
-                          log.Changed_By || log.UpdatedBy || log.Updated_By;
                         return (
                           <tr
                             key={log.Log_ID || log.LogID}
@@ -636,8 +676,11 @@ export default function HomePage() {
                                 {log.Action || log.ActionType || "-"}
                               </span>
                             </td>
+                            <td className="p-3 border font-bold">
+                              {log.Department || "-"}
+                            </td>
                             <td className="p-3 border font-bold text-gray-800">
-                              {updatedBy}
+                              {log.Changed_By || log.UpdatedBy || "-"}
                             </td>
                             <td className="p-3 border whitespace-nowrap">
                               {formatDateOnly(log.Changed_At || log.UpdatedAt)}
@@ -651,7 +694,7 @@ export default function HomePage() {
                     ) : (
                       <tr>
                         <td
-                          colSpan={6}
+                          colSpan={7}
                           className="p-10 text-center text-gray-400 font-semibold"
                         >
                           No logs found for this period.
@@ -783,12 +826,19 @@ export default function HomePage() {
                 options={categoryOptions}
                 onChange={handleInputChange}
               />
-              <Input
-                label="CAE No"
-                name="CAE_No"
-                value={formData.CAE_No}
-                onChange={handleInputChange}
-              />
+
+              {/* High-Level Role Filtering for Modal Fields */}
+              {userRole !== "DP004" && (
+                <>
+                  <Input
+                    label="CAE No"
+                    name="CAE_No"
+                    value={formData.CAE_No}
+                    onChange={handleInputChange}
+                  />
+                </>
+              )}
+
               <Input
                 label="IPI Name No"
                 name="IPI_Name_Number"
@@ -821,96 +871,108 @@ export default function HomePage() {
                 value={formData.Email_Address}
                 onChange={handleInputChange}
               />
-              <Input
-                label="Address"
-                name="Address"
-                value={formData.Address}
-                onChange={handleInputChange}
-              />
-              <Input
-                label="City"
-                name="CITY"
-                value={formData.CITY}
-                onChange={handleInputChange}
-              />
-              <Input
-                label="Contact Number"
-                name="Contact_Number"
-                value={formData.Contact_Number}
-                onChange={handleInputChange}
-              />
-              <Input
-                label="Primary Contact"
-                name="Primary_Contact_Number"
-                value={formData.Primary_Contact_Number}
-                onChange={handleInputChange}
-              />
-              <Input
-                label="Secondary Contact"
-                name="Secondary_Contact_Number"
-                value={formData.Secondary_Contact_Number}
-                onChange={handleInputChange}
-              />
-              <Input
-                label="Landline"
-                name="Landline"
-                value={formData.Landline}
-                onChange={handleInputChange}
-              />
-              <Input
-                label="Business Entity"
-                name="Type_of_Business_Entity"
-                value={formData.Type_of_Business_Entity}
-                onChange={handleInputChange}
-              />
+
+              {userRole !== "DP004" && (
+                <>
+                  <Input
+                    label="Address"
+                    name="Address"
+                    value={formData.Address}
+                    onChange={handleInputChange}
+                  />
+                  <Input
+                    label="City"
+                    name="CITY"
+                    value={formData.CITY}
+                    onChange={handleInputChange}
+                  />
+                  <Input
+                    label="Contact Number"
+                    name="Contact_Number"
+                    value={formData.Contact_Number}
+                    onChange={handleInputChange}
+                  />
+                  <Input
+                    label="Primary Contact"
+                    name="Primary_Contact_Number"
+                    value={formData.Primary_Contact_Number}
+                    onChange={handleInputChange}
+                  />
+                  <Input
+                    label="Secondary Contact"
+                    name="Secondary_Contact_Number"
+                    value={formData.Secondary_Contact_Number}
+                    onChange={handleInputChange}
+                  />
+                  <Input
+                    label="Landline"
+                    name="Landline"
+                    value={formData.Landline}
+                    onChange={handleInputChange}
+                  />
+                  <Input
+                    label="Business Entity"
+                    name="Type_of_Business_Entity"
+                    value={formData.Type_of_Business_Entity}
+                    onChange={handleInputChange}
+                  />
+                </>
+              )}
+
               <Input
                 label="Official Rep"
                 name="Official_Representative"
                 value={formData.Official_Representative}
                 onChange={handleInputChange}
               />
-              <Input
-                label="Office Number"
-                name="Office_Number"
-                value={formData.Office_Number}
-                onChange={handleInputChange}
-              />
-              <Input
-                label="Office Address"
-                name="Office_Address"
-                value={formData.Office_Address}
-                onChange={handleInputChange}
-              />
-              <Input
-                label="Signatory"
-                name="Signatory"
-                value={formData.Signatory}
-                onChange={handleInputChange}
-              />
-              <Input
-                label="Contact Person"
-                name="Contact_Person"
-                value={formData.Contact_Person}
-                onChange={handleInputChange}
-              />
-              <Input
-                label="TIN"
-                name="Tin_Number"
-                value={formData.Tin_Number}
-                onChange={handleInputChange}
-              />
-              <Input
-                label="Bank Name"
-                name="Bank_Name"
-                value={formData.Bank_Name}
-                onChange={handleInputChange}
-              />
-              <Input
-                label="Bank Account Info"
-                name="Bank_Account_Info"
-                value={formData.Bank_Account_Info}
-                onChange={handleInputChange}
-              />
+
+              {userRole !== "DP004" && (
+                <>
+                  <Input
+                    label="Office Number"
+                    name="Office_Number"
+                    value={formData.Office_Number}
+                    onChange={handleInputChange}
+                  />
+                  <Input
+                    label="Office Address"
+                    name="Office_Address"
+                    value={formData.Office_Address}
+                    onChange={handleInputChange}
+                  />
+                  <Input
+                    label="Signatory"
+                    name="Signatory"
+                    value={formData.Signatory}
+                    onChange={handleInputChange}
+                  />
+                  <Input
+                    label="Contact Person"
+                    name="Contact_Person"
+                    value={formData.Contact_Person}
+                    onChange={handleInputChange}
+                  />
+                  <Input
+                    label="TIN"
+                    name="Tin_Number"
+                    value={formData.Tin_Number}
+                    onChange={handleInputChange}
+                  />
+                  <Input
+                    label="Bank Name"
+                    name="Bank_Name"
+                    value={formData.Bank_Name}
+                    onChange={handleInputChange}
+                  />
+                  <Input
+                    label="Bank Account Info"
+                    name="Bank_Account_Info"
+                    value={formData.Bank_Account_Info}
+                    onChange={handleInputChange}
+                  />
+                </>
+              )}
+
               <div className="flex flex-col gap-1">
                 <DateInput
                   label="Date of Membership"
@@ -939,46 +1001,52 @@ export default function HomePage() {
                 value={formData.Date_of_Membership_Termination_Resignation}
                 onChange={handleInputChange}
               />
-              <DateInput
-                label="National Library Reg Date"
-                name="Date_Registred_National_Library"
-                value={formData.Date_Registred_National_Library}
-                onChange={handleInputChange}
-              />
-              <Select
-                label="Deed of Assignment"
-                name="Deed_Of_Assignment"
-                value={formData.Deed_Of_Assignment}
-                options={ynOptions}
-                onChange={handleInputChange}
-              />
-              <Select
-                label="Certification"
-                name="Certification"
-                value={formData.Certification}
-                options={ynOptions}
-                onChange={handleInputChange}
-              />
-              <Select
-                label="Membership Application"
-                name="Membership_Application"
-                value={formData.Membership_Application}
-                options={ynOptions}
-                onChange={handleInputChange}
-              />
-              <Select
-                label="Declaration of Works"
-                name="Declaration_Of_Works"
-                value={formData.Declaration_Of_Works}
-                options={ynOptions}
-                onChange={handleInputChange}
-              />
-              <Input
-                label="Remarks"
-                name="Remarks"
-                value={formData.Remarks}
-                onChange={handleInputChange}
-              />
+
+              {userRole !== "DP004" && (
+                <>
+                  <DateInput
+                    label="National Library Reg Date"
+                    name="Date_Registred_National_Library"
+                    value={formData.Date_Registred_National_Library}
+                    onChange={handleInputChange}
+                  />
+                  <Select
+                    label="Deed of Assignment"
+                    name="Deed_Of_Assignment"
+                    value={formData.Deed_Of_Assignment}
+                    options={ynOptions}
+                    onChange={handleInputChange}
+                  />
+                  <Select
+                    label="Certification"
+                    name="Certification"
+                    value={formData.Certification}
+                    options={ynOptions}
+                    onChange={handleInputChange}
+                  />
+                  <Select
+                    label="Membership Application"
+                    name="Membership_Application"
+                    value={formData.Membership_Application}
+                    options={ynOptions}
+                    onChange={handleInputChange}
+                  />
+                  <Select
+                    label="Declaration of Works"
+                    name="Declaration_Of_Works"
+                    value={formData.Declaration_Of_Works}
+                    options={ynOptions}
+                    onChange={handleInputChange}
+                  />
+                  <Input
+                    label="Remarks"
+                    name="Remarks"
+                    value={formData.Remarks}
+                    onChange={handleInputChange}
+                  />
+                </>
+              )}
+
               <Input
                 label="Related Files"
                 name="Related_files"

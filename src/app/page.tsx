@@ -24,17 +24,14 @@ export default function LoginPage() {
   useEffect(() => {
     const img = new Image();
     img.src = "/CECIL.gif";
-
     const timer = setTimeout(() => {
       setIsInitialized(true);
     }, 800);
-
     return () => clearTimeout(timer);
   }, []);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
-
     setLoading(true);
     setError(null);
 
@@ -48,14 +45,24 @@ export default function LoginPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || "Login failed");
+        throw new Error(data.message || data.error || "Login failed");
       }
 
+      // 1. Set Auth Cookie
       setCookie("auth_token", data.token, { path: "/", maxAge: 1440 });
 
+      // 2. Map Roleflag to a readable Department name
+      let deptName = "Unknown Department";
+      if (data.roleflag === "DP004") deptName = "Documentation";
+      if (data.roleflag === "DP001") deptName = "Membership";
+
+      // 3. Save to Local Storage for use across the app
       localStorage.setItem("username", username);
+      localStorage.setItem("userRole", data.roleflag); 
+      localStorage.setItem("department", deptName);    
 
       router.push("/home");
+      
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);
@@ -162,7 +169,7 @@ export default function LoginPage() {
       {showPrivacy && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className="relative w-full max-w-lg bg-[#f8f9fa] rounded-2xl shadow-2xl overflow-hidden border border-white/20">
-            <div className="bg-[#004aad] p-4 flex justify-between items-center">
+            <div className="bg-[#75b84f] p-4 flex justify-between items-center">
               <h2
                 className={`${poppins.className} text-white font-bold uppercase tracking-widest text-sm`}
               >
@@ -235,7 +242,7 @@ export default function LoginPage() {
             <div className="bg-gray-100 p-3 text-center border-t">
               <button
                 onClick={() => setShowPrivacy(false)}
-                className="bg-[#004aad] text-white text-[10px] px-8 py-2 rounded-full hover:bg-blue-700 transition-all font-bold uppercase"
+                className="bg-[#75b84f] text-white text-[10px] px-8 py-2 rounded-full hover:bg-blue-700 transition-all font-bold uppercase"
               >
                 I Understand
               </button>

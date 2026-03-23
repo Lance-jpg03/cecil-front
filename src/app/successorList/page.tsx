@@ -33,7 +33,7 @@ interface successorData {
   Member_Category: string;
   Member_Status?: string | null;
   Remarks: string;
-  Predecessor_Membership_ID: string;
+  "Predecessor : (Membership ID)": string;
   Successor_Surname: string | null;
   Successor_First_Name: string | null;
   Successor_Middle_Name?: string | null;
@@ -67,8 +67,9 @@ interface successorData {
 
 interface Log {
   Log_ID: number;
-  Membership_ID: string;
+  Predecessor_Membership_ID: string;
   Action: string;
+  Department: string;
   Changed_By: string;
   Changed_At: string;
   Details?: string;
@@ -142,14 +143,17 @@ export default function SuccessorListPage() {
 
   useEffect(() => {
     if (isModalOpen) {
-      const full =
-        `${formData.Successor_First_Name || ""} 
-        ${formData.Successor_Middle_Name || ""} 
+      const full = `${formData.Successor_First_Name || ""}
+        ${formData.Successor_Middle_Name || ""}
         ${formData.Successor_Surname || ""}
-        ${formData.Successor_Suffix ? ` 
-          ${formData.Successor_Suffix}` : ""}`
-          .trim()
-          .replace(/\s+/g, " ");
+        ${
+          formData.Successor_Suffix
+            ? `
+          ${formData.Successor_Suffix}`
+            : ""
+        }`
+        .trim()
+        .replace(/\s+/g, " ");
 
       if (formData.Successor_Full_Name !== full) {
         setFormData((prev) => ({ ...prev, Successor_Full_Name: full }));
@@ -239,20 +243,108 @@ export default function SuccessorListPage() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  // const handleSubmit = async () => {
+  //   if (saving) return;
+  //   setSaving(true);
+  //   const currentUser = localStorage.getItem("username");
+
+  //   const sanitizedData: any = {};
+
+  //   Object.keys(formData).forEach((key) => {
+  //     // Filter out invalid keys (labels accidentally saved as keys)
+  //     if (key.includes(":") || key.includes("(") || key.includes(")")) {
+  //       return;
+  //     }
+
+  //     sanitizedData[key] = formData[key as keyof typeof formData];
+  //   });
+
+  //   console.log("SANITIZED DATA:", sanitizedData);
+
+  //   try {
+  //     const res = await fetch(`${API_BASE}/successor/save`, {
+  //       method: "POST",
+  //       headers: { "Content-Type": "application/json" },
+  //       body: JSON.stringify({
+  //         ...formData,
+  //         isEdit: isEditMode,
+  //         Changed_By: currentUser,
+  //       }),
+  //     });
+
+  //     const data = await res.json();
+  //     if (!res.ok) throw new Error(data.error || "Failed to save");
+
+  //     setIsModalOpen(false);
+  //     await fetchSuccessors();
+  //     alert("Action completed successfully.");
+  //   } catch (err) {
+  //     const errorMessage =
+  //       err instanceof Error ? err.message : "Something went wrong.";
+  //     console.error("Save Error:", errorMessage);
+  //     alert(errorMessage);
+  //   } finally {
+  //     setSaving(false);
+  //   }
+  // };
+
   const handleSubmit = async () => {
     if (saving) return;
     setSaving(true);
-    const currentUser = localStorage.getItem("username");
+
+    const currentUser = localStorage.getItem("username") || "SYSTEM";
+    const currentDept = localStorage.getItem("department") || "N/A";
 
     try {
+      const payload = {
+        Member_No: formData.Member_No,
+        Member_Category: formData.Member_Category,
+        Member_Status: formData.Member_Status,
+        Remarks: formData.Remarks,
+        "Predecessor : (Membership ID)":
+          formData["Predecessor : (Membership ID)"],
+        Successor_Surname: formData.Successor_Surname,
+        Successor_First_Name: formData.Successor_First_Name,
+        Successor_Middle_Name: formData.Successor_Middle_Name,
+        Successor_Suffix: formData.Successor_Suffix,
+        Successor_Full_Name: formData.Successor_Full_Name,
+        Successor_Sex: formData.Successor_Sex,
+        Successor_Prefix: formData.Successor_Prefix,
+        Successor_CAE_No: formData.Successor_CAE_No,
+        Successor_Membership_ID: formData.Successor_Membership_ID,
+        Successor_IPI_Name_Number: formData.Successor_IPI_Name_Number,
+        Successor_IPI_Base_Number: formData.Successor_IPI_Base_Number,
+        Successor_Band_Name: formData.Successor_Band_Name,
+        Successor_Pseudonym: formData.Successor_Pseudonym,
+        Successor_Address: formData.Successor_Address,
+        Successor_Contact_Number: formData.Successor_Contact_Number,
+        Successor_Email_Address: formData.Successor_Email_Address,
+        Successor_Tin_Number: formData.Successor_Tin_Number,
+        Successor_Primary_Contact_Number:
+          formData.Successor_Primary_Contact_Number,
+        Successor_Secondary_Contact_Number:
+          formData.Successor_Secondary_Contact_Number,
+        Successor_Landline: formData.Successor_Landline,
+        Successor_Bank_Account_Info: formData.Successor_Bank_Account_Info,
+        Successor_Bank_Name: formData.Successor_Bank_Name,
+        Successor_Contact_Person: formData.Successor_Contact_Person,
+        Successor_Date_of_Membership: formData.Successor_Date_of_Membership,
+        Successor_Date_of_Birth: formData.Successor_Date_of_Birth,
+        Successor_Date_of_Death: formData.Successor_Date_of_Death,
+        Successor_Date_of_Termination: formData.Successor_Date_of_Termination,
+        Successor_Related_Files: formData.Successor_Related_Files,
+        Successor_Date_Registred_National_Library:
+          formData.Successor_Date_Registred_National_Library,
+
+        isEdit: isEditMode,
+        Changed_By: currentUser,
+        Department: currentDept, // Matches backend skipKeys
+      };
+
       const res = await fetch(`${API_BASE}/successor/save`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...formData,
-          isEdit: isEditMode,
-          Changed_By: currentUser,
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
@@ -260,12 +352,12 @@ export default function SuccessorListPage() {
 
       setIsModalOpen(false);
       await fetchSuccessors();
-      alert("Action completed successfully.");
+      alert("Saved Successfully!");
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Something went wrong.";
-      console.error("Save Error:", errorMessage);
-      alert(errorMessage);
+      console.error("Save Error:", err);
+      alert(
+        err instanceof Error ? err.message : "An error occurred while saving.",
+      );
     } finally {
       setSaving(false);
     }
@@ -410,7 +502,7 @@ export default function SuccessorListPage() {
                     {s.Successor_Membership_ID}
                   </td>
                   <td className="px-4 py-1.5 text-[10px]">
-                    {s.Predecessor_Membership_ID}
+                    {s["Predecessor : (Membership ID)"]}
                   </td>
                   <td className="px-4 py-1.5 text-[10px]">
                     {s.Successor_Date_of_Birth?.substring(0, 10) || "-"}
@@ -551,6 +643,7 @@ export default function SuccessorListPage() {
                       <th className="p-3 border">Log ID</th>
                       <th className="p-3 border">Membership ID</th>
                       <th className="p-3 border">Action</th>
+                      <th className="p-3 border">Department</th>
                       <th className="p-3 border">Updated By</th>
                       <th className="p-3 border">Updated At</th>
                       <th className="p-3 border">Details</th>
@@ -559,8 +652,6 @@ export default function SuccessorListPage() {
                   <tbody>
                     {logs.length > 0 ? (
                       logs.map((log: any) => {
-                        const updatedBy =
-                          log.Changed_By || log.UpdatedBy || log.Updated_By;
                         return (
                           <tr
                             key={log.Log_ID || log.LogID}
@@ -577,8 +668,11 @@ export default function SuccessorListPage() {
                                 {log.Action || log.ActionType || "-"}
                               </span>
                             </td>
+                            <td className="p-3 border font-bold">
+                              {log.Department || "-"}
+                            </td>
                             <td className="p-3 border font-bold text-gray-800">
-                              {updatedBy}
+                              {log.Changed_By || log.UpdatedBy || "-"}
                             </td>
                             <td className="p-3 border whitespace-nowrap">
                               {formatDateOnly(log.Changed_At || log.UpdatedAt)}
@@ -633,7 +727,7 @@ export default function SuccessorListPage() {
               <Input
                 label="Predecessor ID"
                 name="Predecessor_Membership_ID"
-                value={formData.Predecessor_Membership_ID}
+                value={formData["Predecessor : (Membership ID)"]}
                 onChange={handleInputChange}
                 disabled={isEditMode}
               />
@@ -690,10 +784,14 @@ export default function SuccessorListPage() {
                 label="Full Name"
                 name="Successor_Full_Name"
                 value={`${formData.Successor_First_Name || ""}
-                 ${formData.Successor_Middle_Name || ""} 
+                 ${formData.Successor_Middle_Name || ""}
                  ${formData.Successor_Surname || ""}
-                 ${formData.Successor_Suffix ? ` 
-                  ${formData.Successor_Suffix}` : ""}`.trim()}
+                 ${
+                   formData.Successor_Suffix
+                     ? `
+                  ${formData.Successor_Suffix}`
+                     : ""
+                 }`.trim()}
                 disabled
               />
 
