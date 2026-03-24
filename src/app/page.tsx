@@ -48,15 +48,12 @@ export default function LoginPage() {
         throw new Error(data.message || data.error || "Login failed");
       }
 
-      // 1. Set Auth Cookie
       setCookie("auth_token", data.token, { path: "/", maxAge: 1440 });
 
-      // 2. Map Roleflag to a readable Department name
       let deptName = "Unknown Department";
       if (data.roleflag === "DP004") deptName = "Documentation";
       if (data.roleflag === "DP001") deptName = "Membership";
 
-      // 3. Save to Local Storage for use across the app
       localStorage.setItem("username", username);
       localStorage.setItem("userRole", data.roleflag); 
       localStorage.setItem("department", deptName);    

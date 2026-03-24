@@ -103,7 +103,7 @@ interface Member {
 
 interface Log {
   Log_ID: number;
-  Membership_ID: string;
+  Member_No: string; // Internal ID for linking
   Action: string;
   Department: string;
   Changed_By: string;
@@ -171,12 +171,28 @@ export default function HomePage() {
     try {
       const res = await fetch(`${API_BASE}/logs`);
       if (!res.ok) throw new Error("Failed to fetch logs");
-      const data: Log[] = await res.json();
-      setAllLogs(data);
+      const rawData: any[] = await res.json();
+      const memberOnlyLogs: Log[] = rawData
+        .map((log) => ({
+          Log_ID: log.Log_ID || log.LogID,
+          Member_No: log.Member_No,
+          Action: log.Action || log.ActionType,
+          Department: log.Department,
+          Changed_By: log.Changed_By || log.UpdatedBy,
+          Changed_At: log.Changed_At || log.UpdatedAt,
+          Details: log.Details || log.ActionDetails,
+        }))
+        .filter(
+          (log) => log.Action === "ADD_MEMBER" || log.Action === "UPDATE_MEMBER"
+        );
+
+      setAllLogs(memberOnlyLogs);
+
       const today = new Date().toISOString().split("T")[0];
-      const todaysLogs = data.filter(
-        (log) => log.Changed_At.split("T")[0] === today,
+      const todaysLogs = memberOnlyLogs.filter(
+        (log) => log.Changed_At.split("T")[0] === today
       );
+      
       setLogs(todaysLogs);
     } catch (err) {
       console.error("Error fetching logs:", err);
@@ -334,6 +350,19 @@ export default function HomePage() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleLogClick = (memberNo: string) => {
+    const member = members.find(
+      (m) => String(m.Member_No) === String(memberNo),
+    );
+
+    if (member) {
+      setSelectedMember(member);
+      setIsLogsModalOpen(false);
+    } else {
+      alert("Member record not found in the current list.");
+    }
+  };
+
   const handleSubmit = async () => {
     if (saving) return;
     setSaving(true);
@@ -347,7 +376,7 @@ export default function HomePage() {
           ...formData,
           isEdit: isEditMode,
           Changed_By: currentUser,
-          Department: currentDept
+          Department: currentDept,
         }),
       });
       if (res.ok) {
@@ -539,7 +568,6 @@ export default function HomePage() {
               </button>
             </div>
             <div className="p-6 overflow-y-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {/* Show Successor only if not in Doc Dept restricted view or if explicitly needed */}
               {userRole !== "DP004" && (
                 <div className="border-b pb-2">
                   <p className="text-[9px] uppercase text-gray-400 font-bold">
@@ -645,8 +673,8 @@ export default function HomePage() {
                   Retrieving system logs...
                 </p>
               ) : (
-                <table className="w-full text-left text-sm">
-                  <thead className="sticky top-0 bg-gray-200 uppercase text-[10px] font-bold z-10">
+                <table className="w-full text-left  text-sm">
+                  <thead className="top-0 bg-gray-200 uppercase text-[10px] font-bold">
                     <tr>
                       <th className="p-3 border">Log ID</th>
                       <th className="p-3 border">Membership ID</th>
@@ -660,6 +688,13 @@ export default function HomePage() {
                   <tbody>
                     {logs.length > 0 ? (
                       logs.map((log: any) => {
+                        const linkedMember = members.find(
+                          (m) => m.Member_No === log.Member_No,
+                        );
+                        const displayId = linkedMember
+                          ? linkedMember.Membership_ID
+                          : log.Member_No;
+
                         return (
                           <tr
                             key={log.Log_ID || log.LogID}
@@ -668,11 +703,21 @@ export default function HomePage() {
                             <td className="p-3 border text-center">
                               {log.Log_ID || log.LogID || "-"}
                             </td>
+
                             <td className="p-3 border font-mono">
-                              {log.Membership_ID || log.Member_No || "-"}
+                              <button
+                                onClick={() => handleLogClick(log.Member_No)}
+                                className="text-blue-600 font-bold hover:underline"
+                              >
+                                {members.find(
+                                  (m) => m.Member_No === log.Member_No,
+                                )?.Membership_ID ||
+                                  log.Member_No ||
+                                  "-"}
+                              </button>
                             </td>
                             <td className="p-3 border">
-                              <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-[10px] font-bold uppercase">
+                              <span className="bg-blue-100 text-black px-2 py-1 rounded text-[10px] font-bold uppercase">
                                 {log.Action || log.ActionType || "-"}
                               </span>
                             </td>
@@ -801,7 +846,7 @@ export default function HomePage() {
                     {calculateAge(
                       formData.Date_of_Birth,
                       formData.Date_of_Death,
-                    )}{" "}
+                    )}
                     yrs
                   </span>
                 </div>
@@ -827,7 +872,6 @@ export default function HomePage() {
                 onChange={handleInputChange}
               />
 
-              {/* High-Level Role Filtering for Modal Fields */}
               {userRole !== "DP004" && (
                 <>
                   <Input

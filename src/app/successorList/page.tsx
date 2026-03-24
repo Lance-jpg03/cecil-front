@@ -98,18 +98,6 @@ export default function SuccessorListPage() {
   const [logs, setLogs] = useState<Log[]>([]);
   const [logsLoading, setLogsLoading] = useState(false);
 
-  const fetchSuccessors = async () => {
-    try {
-      const res = await fetch(`${API_BASE}/successor`);
-      if (!res.ok) throw new Error("Failed to fetch");
-      const data = await res.json();
-      setSuccessors(data || []);
-      setFilteredSuccessors(data || []);
-    } catch (err) {
-      console.error("Fetch error:", err);
-    }
-  };
-
   const handleLogout = async () => {
     try {
       await fetch(`${API_BASE}/logout`, {
@@ -123,19 +111,54 @@ export default function SuccessorListPage() {
     }
   };
 
+  const fetchSuccessors = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/successor`);
+      if (!res.ok) throw new Error("Failed to fetch");
+      const data = await res.json();
+      setSuccessors(data || []);
+      setFilteredSuccessors(data || []);
+    } catch (err) {
+      console.error("Fetch error:", err);
+    }
+  };
+
+
   const fetchLogs = async () => {
     setLogsLoading(true);
     try {
       const res = await fetch(`${API_BASE}/logs`);
-      const data: Log[] = await res.json();
-      setAllLogs(data);
+      if (!res.ok) throw new Error("Failed to fetch logs");
+      
+      const rawData: any[] = await res.json();
+
+      const SuccessorOnlyLogs: Log[] = rawData
+        .map((log) => ({
+          Log_ID: log.Log_ID || log.LogID,
+          Member_No: log.Member_No,
+          Action: log.Action || log.ActionType,
+          Department: log.Department,
+          Changed_By: log.Changed_By || log.UpdatedBy,
+          Changed_At: log.Changed_At || log.UpdatedAt,
+          Details: log.Details || log.ActionDetails,
+          Predecessor_Membership_ID: log.Member_No 
+        }))
+        .filter(
+          (log) => 
+            log.Action === "ADD_SUCCESSOR" ||
+            log.Action === "UPDATE_SUCCESSOR"
+        );
+
+      setAllLogs(SuccessorOnlyLogs);
+
       const today = new Date().toISOString().split("T")[0];
-      const filtered = data.filter(
-        (log) => log.Changed_At && log.Changed_At.split("T")[0] === today,
+      const todaysLogs = SuccessorOnlyLogs.filter(
+        (log) => log.Changed_At.split("T")[0] === today
       );
-      setLogs(filtered);
+      
+      setLogs(todaysLogs);
     } catch (err) {
-      console.error("Fetch Logs Error:", err);
+      console.error("Error fetching logs:", err);
     } finally {
       setLogsLoading(false);
     }
@@ -243,50 +266,18 @@ export default function SuccessorListPage() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // const handleSubmit = async () => {
-  //   if (saving) return;
-  //   setSaving(true);
-  //   const currentUser = localStorage.getItem("username");
+  const handleLogClick = (memberNo: string) => {
+    const member = successors.find(
+      (m) => String(m.Successor_Membership_ID) === String(memberNo),
+    );
 
-  //   const sanitizedData: any = {};
-
-  //   Object.keys(formData).forEach((key) => {
-  //     // Filter out invalid keys (labels accidentally saved as keys)
-  //     if (key.includes(":") || key.includes("(") || key.includes(")")) {
-  //       return;
-  //     }
-
-  //     sanitizedData[key] = formData[key as keyof typeof formData];
-  //   });
-
-  //   console.log("SANITIZED DATA:", sanitizedData);
-
-  //   try {
-  //     const res = await fetch(`${API_BASE}/successor/save`, {
-  //       method: "POST",
-  //       headers: { "Content-Type": "application/json" },
-  //       body: JSON.stringify({
-  //         ...formData,
-  //         isEdit: isEditMode,
-  //         Changed_By: currentUser,
-  //       }),
-  //     });
-
-  //     const data = await res.json();
-  //     if (!res.ok) throw new Error(data.error || "Failed to save");
-
-  //     setIsModalOpen(false);
-  //     await fetchSuccessors();
-  //     alert("Action completed successfully.");
-  //   } catch (err) {
-  //     const errorMessage =
-  //       err instanceof Error ? err.message : "Something went wrong.";
-  //     console.error("Save Error:", errorMessage);
-  //     alert(errorMessage);
-  //   } finally {
-  //     setSaving(false);
-  //   }
-  // };
+    if (member) {
+      setSelectedSuccessor(member);
+      setIsLogsModalOpen(false);
+    } else {
+      alert("Member record not found in the current list.");
+    }
+  };
 
   const handleSubmit = async () => {
     if (saving) return;
@@ -483,7 +474,7 @@ export default function SuccessorListPage() {
         <div className="text-black text-3xl hidden lg:block font-bold mb-2">
           Sucessors
         </div>
-        <div className="bg-white rounded-xl shadow-2xl overflow-hidden border">
+        <div className="bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-200">
           <table className="w-full text-left">
             <thead className="bg-[#b7df69] text-white uppercase text-[10px]">
               <tr>
@@ -641,7 +632,7 @@ export default function SuccessorListPage() {
                   <thead className="top-0 bg-gray-200 uppercase text-[10px] font-bold">
                     <tr>
                       <th className="p-3 border">Log ID</th>
-                      <th className="p-3 border">Membership ID</th>
+                      <th className="p-3 border">Successor ID</th>
                       <th className="p-3 border">Action</th>
                       <th className="p-3 border">Department</th>
                       <th className="p-3 border">Updated By</th>
@@ -661,10 +652,19 @@ export default function SuccessorListPage() {
                               {log.Log_ID || log.LogID || "-"}
                             </td>
                             <td className="p-3 border font-mono">
-                              {log.Membership_ID || log.Member_No || "-"}
+                              <button
+                                onClick={() => handleLogClick(log.Member_No)}
+                                className="text-blue-600 font-bold hover:underline"
+                              >
+                                {successors.find(
+                                  (m) => m.Member_No === log.Member_No,
+                                )?.Successor_Membership_ID ||
+                                  log.Member_No ||
+                                  "-"}
+                              </button>
                             </td>
                             <td className="p-3 border">
-                              <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-[10px] font-bold uppercase">
+                              <span className="bg-blue-100 text-black px-2 py-1 rounded text-[10px] font-bold uppercase">
                                 {log.Action || log.ActionType || "-"}
                               </span>
                             </td>
