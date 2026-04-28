@@ -32,6 +32,7 @@ const ynOptions = ["Y", "N"];
 const DOC_DEPT_FIELDS = [
   "Member_No",
   "Membership_ID",
+  "Successor_Membership_ID",
   "Member_Category",
   "Member_Status",
   "Last_Name",
@@ -57,6 +58,7 @@ const DOC_DEPT_FIELDS = [
 interface Member {
   Member_No: string;
   Membership_ID: string;
+  Successor_ID?: string | null; // <--- Add this
   Member_Status?: string | null;
   Member_Category?: string | null;
   Prefix?: string | null;
@@ -192,7 +194,7 @@ export default function HomePage() {
       const todaysLogs = memberOnlyLogs.filter(
         (log) => log.Changed_At.split("T")[0] === today
       );
-      
+
       setLogs(todaysLogs);
     } catch (err) {
       console.error("Error fetching logs:", err);
@@ -393,6 +395,17 @@ export default function HomePage() {
     }
   };
 
+  const handleSuccessorClick = (successorMembershipId: string) => {
+    // Search for the member whose Membership_ID matches the Successor's ID
+    const found = members.find((m) => m.Membership_ID === successorMembershipId);
+
+    if (found) {
+      setSelectedMember(found);
+    } else {
+      alert(`Successor with ID ${successorMembershipId} not found in the masterlist.`);
+    }
+  };
+
   const totalPages = Math.ceil(filteredMembers.length / itemsPerPage);
   const currentData = filteredMembers.slice(
     (currentPage - 1) * itemsPerPage,
@@ -577,7 +590,7 @@ export default function HomePage() {
                     <button
                       onClick={() =>
                         router.push(
-                          `/successorList?search=${selectedMember.Membership_ID}`,
+                          `/successorList?search=${selectedMember.Successor_ID}`,
                         )
                       }
                       className="text-blue-600 font-bold hover:underline text-sm uppercase"

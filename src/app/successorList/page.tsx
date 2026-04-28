@@ -3,7 +3,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:3001";
@@ -77,27 +77,22 @@ interface Log {
 
 export default function SuccessorListPage() {
   const router = useRouter();
-
+  const searchParams = useSearchParams();
+  const searchId = searchParams.get('id');
   const [successors, setSuccessors] = useState<successorData[]>([]);
-  const [filteredSuccessors, setFilteredSuccessors] = useState<successorData[]>(
-    [],
-  );
+  const [filteredSuccessors, setFilteredSuccessors] = useState<successorData[]>([],);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
-
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
-  const [selectedSuccessor, setSelectedSuccessor] =
-    useState<successorData | null>(null);
+  const [selectedSuccessor, setSelectedSuccessor] = useState<successorData | null>(null);
   const [formData, setFormData] = useState<Partial<successorData>>({});
   const [saving, setSaving] = useState(false);
-
   const [isLogsModalOpen, setIsLogsModalOpen] = useState(false);
   const [allLogs, setAllLogs] = useState<Log[]>([]);
   const [logs, setLogs] = useState<Log[]>([]);
   const [logsLoading, setLogsLoading] = useState(false);
-
   const handleLogout = async () => {
     try {
       await fetch(`${API_BASE}/logout`, {
@@ -129,7 +124,7 @@ export default function SuccessorListPage() {
     try {
       const res = await fetch(`${API_BASE}/logs`);
       if (!res.ok) throw new Error("Failed to fetch logs");
-      
+
       const rawData: any[] = await res.json();
 
       const SuccessorOnlyLogs: Log[] = rawData
@@ -141,10 +136,10 @@ export default function SuccessorListPage() {
           Changed_By: log.Changed_By || log.UpdatedBy,
           Changed_At: log.Changed_At || log.UpdatedAt,
           Details: log.Details || log.ActionDetails,
-          Predecessor_Membership_ID: log.Member_No 
+          Predecessor_Membership_ID: log.Member_No
         }))
         .filter(
-          (log) => 
+          (log) =>
             log.Action === "ADD_SUCCESSOR" ||
             log.Action === "UPDATE_SUCCESSOR"
         );
@@ -155,7 +150,7 @@ export default function SuccessorListPage() {
       const todaysLogs = SuccessorOnlyLogs.filter(
         (log) => log.Changed_At.split("T")[0] === today
       );
-      
+
       setLogs(todaysLogs);
     } catch (err) {
       console.error("Error fetching logs:", err);
@@ -169,11 +164,10 @@ export default function SuccessorListPage() {
       const full = `${formData.Successor_First_Name || ""}
         ${formData.Successor_Middle_Name || ""}
         ${formData.Successor_Surname || ""}
-        ${
-          formData.Successor_Suffix
-            ? `
+        ${formData.Successor_Suffix
+          ? `
           ${formData.Successor_Suffix}`
-            : ""
+          : ""
         }`
         .trim()
         .replace(/\s+/g, " ");
@@ -189,6 +183,25 @@ export default function SuccessorListPage() {
     formData.Successor_Suffix,
     isModalOpen,
   ]);
+
+  useEffect(() => {
+    const searchId = searchParams.get("search");
+
+    if (searchId) {
+      console.log("Found search ID in URL:", searchId);
+
+      if (successors.length > 0) {
+        const successorToOpen = successors.find(
+          (s) => String(s.Successor_Membership_ID) === String(searchId)
+        );
+
+        if (successorToOpen) {
+          console.log("Match found! Opening modal for:", successorToOpen.Successor_Full_Name);
+          setSelectedSuccessor(successorToOpen);
+        }
+      }
+    }
+  }, [searchParams, successors]);
 
   function calculateAge(
     dob: string | undefined | null,
@@ -329,7 +342,7 @@ export default function SuccessorListPage() {
 
         isEdit: isEditMode,
         Changed_By: currentUser,
-        Department: currentDept, // Matches backend skipKeys
+        Department: currentDept,
       };
 
       const res = await fetch(`${API_BASE}/successor/save`, {
@@ -560,7 +573,7 @@ export default function SuccessorListPage() {
                   </p>
                   <p className="text-gray-800 font-medium text-sm">
                     {key.toLowerCase().includes("date") &&
-                    typeof val === "string"
+                      typeof val === "string"
                       ? val.substring(0, 10)
                       : String(val || "N/A")}
                   </p>
@@ -577,8 +590,12 @@ export default function SuccessorListPage() {
               >
                 Edit Information
               </button>
+
               <button
-                onClick={() => setSelectedSuccessor(null)}
+                onClick={() => {
+                  setSelectedSuccessor(null);      
+                  router.replace("/successorList");
+                }}
                 className="flex-1 bg-gray-200 py-2 rounded-lg font-bold text-xs uppercase"
               >
                 Close
@@ -786,12 +803,11 @@ export default function SuccessorListPage() {
                 value={`${formData.Successor_First_Name || ""}
                  ${formData.Successor_Middle_Name || ""}
                  ${formData.Successor_Surname || ""}
-                 ${
-                   formData.Successor_Suffix
-                     ? `
+                 ${formData.Successor_Suffix
+                    ? `
                   ${formData.Successor_Suffix}`
-                     : ""
-                 }`.trim()}
+                    : ""
+                  }`.trim()}
                 disabled
               />
 
