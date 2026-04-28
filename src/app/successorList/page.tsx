@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react"; // Added Suspense
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 
@@ -75,7 +75,7 @@ interface Log {
   Details?: string;
 }
 
-export default function SuccessorListPage() {
+ function SuccessorListContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const searchId = searchParams.get('id');
@@ -1084,5 +1084,13 @@ function DateInput({ label, name, value, onChange }: any) {
         className="p-1.5 border rounded text-[10px] bg-white"
       />
     </div>
+  );
+}
+
+export default function SuccessorListPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SuccessorListContent />
+    </Suspense>
   );
 }
